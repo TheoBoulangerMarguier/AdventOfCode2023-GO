@@ -87,7 +87,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -95,12 +94,15 @@ import (
 	"strings"
 )
 
-func Day2() {
-	d2p1()
-	d2p2()
+func Day2() [2]int {
+	return [2]int{
+		d2p1(),
+		d2p2(),
+	}
 }
 
-func d2p1() {
+func d2p1() int {
+	//step 1 open and scan the file
 	file, err := os.Open("./Ressources/day2_input.txt")
 
 	if err != nil {
@@ -118,6 +120,7 @@ func d2p1() {
 	rgbInput := [3]int{12, 13, 14}
 	sum := 0
 
+	//define regex matching the different elements in the string
 	idRegex := regexp.MustCompile(`Game\s(\d+)`)
 	redRegex := regexp.MustCompile(`(\d+)\s+red`)
 	greenRegex := regexp.MustCompile(`(\d+)\s+green`)
@@ -160,11 +163,11 @@ func d2p1() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Result Day2 Part1: %d\n", sum)
-
+	return sum
 }
 
-func d2p2() {
+func d2p2() int {
+	//Step 1
 	file, err := os.Open("./Ressources/day2_input.txt")
 
 	if err != nil {
@@ -181,6 +184,7 @@ func d2p2() {
 
 	sum := 0
 
+	//define regex matching the string elements
 	redRegex := regexp.MustCompile(`(\d+)\s+red`)
 	greenRegex := regexp.MustCompile(`(\d+)\s+green`)
 	blueRegex := regexp.MustCompile(`(\d+)\s+blue`)
@@ -206,9 +210,10 @@ func d2p2() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Result Day2 Part2: %d\n", sum)
+	return sum
 }
 
+// get the highest possible value found in the array
 func maxFromColorArray(array []string) int {
 	var max int = 0
 

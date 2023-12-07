@@ -125,7 +125,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -141,11 +140,15 @@ type card struct {
 	count       int
 }
 
-func Day4() {
-	d4p1()
-	d4p2()
+func Day4() [2]int {
+	return [2]int{
+		d4p1(),
+		d4p2(),
+	}
 }
 
+// read a line of text representing a card
+// extract all the ID, wining numbers, player numbers, score and count
 func ExtractCardinfo(text string) card {
 	rawid := strings.Split(strings.Split(text, ":")[0], " ")
 	id, err := strconv.Atoi(rawid[len(rawid)-1])
@@ -210,13 +213,19 @@ func ExtractCardinfo(text string) card {
 	return newCard
 }
 
-func d4p1() {
+func d4p1() int {
 
 	file, err := os.Open("./Ressources/day4_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -225,6 +234,10 @@ func d4p1() {
 	//extract info about all games
 	for scanner.Scan() {
 		cards = append(cards, ExtractCardinfo(scanner.Text()))
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
 	}
 
 	//calculate score
@@ -246,15 +259,21 @@ func d4p1() {
 		}
 	}
 
-	fmt.Printf("Result Day4 Part1: %d\n", sum)
+	return sum
 }
 
-func d4p2() {
+func d4p2() int {
 	file, err := os.Open("./Ressources/day4_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -271,6 +290,10 @@ func d4p2() {
 		} else {
 			cards[newCard.cardID] = newCard
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
 	}
 
 	sum := 0
@@ -307,5 +330,5 @@ func d4p2() {
 		}
 	}
 
-	fmt.Printf("Result Day4 Part2: %d\n", sum)
+	return sum
 }

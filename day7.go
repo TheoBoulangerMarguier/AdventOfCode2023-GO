@@ -127,7 +127,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -191,9 +190,11 @@ var comboScore map[string]int = map[string]int{
 	HIGH_CARD:       1,
 }
 
-func Day7() {
-	d7p1()
-	d7p2()
+func Day7() [2]int {
+	return [2]int{
+		d7p1(),
+		d7p2(),
+	}
 }
 
 // walk through the cards and check for repetition,
@@ -324,13 +325,19 @@ func bubbleSort(arr []hand, useWildeCard bool) {
 	}
 }
 
-func d7p1() {
+func d7p1() int {
 
 	//step 1 load the file and scan it to extract data
 	file, err := os.Open("./Ressources/day7_input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -359,6 +366,10 @@ func d7p1() {
 		data = append(data, h)
 	}
 
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	//step 2 sort the array based on score
 	bubbleSort(data, false)
 
@@ -368,17 +379,22 @@ func d7p1() {
 		sumProd += i * data[i-1].bid
 	}
 
-	fmt.Printf("Result Day7 Part1: %d\n", sumProd)
-
+	return sumProd
 }
 
-func d7p2() {
+func d7p2() int {
 
 	//step 1 load the file and scan it to extract data
 	file, err := os.Open("./Ressources/day7_input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -407,6 +423,10 @@ func d7p2() {
 		data = append(data, h)
 	}
 
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	//step 2 sort the array based on score
 	bubbleSort(data, true)
 
@@ -416,5 +436,5 @@ func d7p2() {
 		sumProd += i * data[i-1].bid
 	}
 
-	fmt.Printf("Result Day7 Part2: %d\n", sumProd)
+	return sumProd
 }

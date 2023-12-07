@@ -167,7 +167,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -190,15 +189,18 @@ type blockFilter struct {
 	newBase int
 }
 
-func Day5() {
-	d5p1()
-	d5p2()
+func Day5() [2]int {
+	return [2]int{
+		d5p1(),
+		d5p2(),
+	}
 }
 
 // extract the txt input into a slice fo seeds :[]int ;and a slice for each category
 // the category slices contains a slice of filters : [][]blockFilter
 func Extract() ([][]blockFilter, []int) {
 	file, err := os.Open("./Ressources/day5_input.txt")
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -274,6 +276,10 @@ func Extract() ([][]blockFilter, []int) {
 		lastLine = scanner.Text()
 	}
 
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	return categoryMap, seedsList
 }
 
@@ -299,8 +305,7 @@ func Part1Converter(filters []blockFilter, key int) int {
 }
 
 // core logic of part1 return the result in print
-func d5p1() {
-
+func d5p1() int {
 	category, seeds := Extract()
 
 	min := math.MaxInt
@@ -318,8 +323,7 @@ func d5p1() {
 		}
 	}
 
-	fmt.Printf("Result Day5 Part1: %d\n", min)
-
+	return min
 }
 
 // detect overlap between a range A and a range B using their start/end as coordinates
@@ -484,7 +488,7 @@ func checkForMerge(slice []block) []block {
 }
 
 // core logic of part 2, will return the result as print
-func d5p2() {
+func d5p2() int {
 	filters, seeds := Extract()
 
 	if len(seeds)%2 != 0 {
@@ -511,8 +515,6 @@ func d5p2() {
 	for blockID := 0; blockID < multithreadLenght; blockID++ {
 		go func(blockID int) {
 			defer wg.Done()
-
-			fmt.Println("starting blockID:", blockID, blocks[blockID])
 
 			//creating a packet for each bloc that will contain the splits of this block
 			packet := []block{
@@ -569,7 +571,6 @@ func d5p2() {
 				}
 			}
 			packetOutput = append(packetOutput, packetMin)
-			fmt.Println("ending blockID:", blockID, "min value of this block: ", packetMin)
 
 		}(blockID)
 	}
@@ -583,5 +584,5 @@ func d5p2() {
 			min = output
 		}
 	}
-	fmt.Printf("Result Day5 Part2: %d\n", min)
+	return min
 }

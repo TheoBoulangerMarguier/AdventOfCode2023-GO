@@ -87,16 +87,17 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"unicode"
 )
 
-func Day3() {
-	d3p1()
-	d3p2()
+func Day3() [2]int {
+	return [2]int{
+		d3p1(),
+		d3p2(),
+	}
 }
 
 // check if a specific position contains a character different from '.' and not a digit
@@ -160,13 +161,19 @@ func getFullNumber(slice2D [][]rune, x int, y int) int {
 	return output
 }
 
-func d3p1() {
+func d3p1() int {
 	//step 0 open the file
 	file, err := os.Open("./Ressources/day3_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -229,17 +236,22 @@ func d3p1() {
 		valid = false
 	}
 
-	fmt.Printf("Result Day3 Part1: %d\n", sum)
-
+	return sum
 }
 
-func d3p2() {
+func d3p2() int {
 	//step 0 open the file
 	file, err := os.Open("./Ressources/day3_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 
@@ -320,5 +332,5 @@ func d3p2() {
 			}
 		}
 	}
-	fmt.Printf("Result Day3 Part2: %d\n", sum)
+	return sum
 }

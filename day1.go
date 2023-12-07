@@ -67,21 +67,21 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"unicode"
 )
 
-func Day1() {
-
-	d1p1()
-	d1p2()
-
+func Day1() [2]int {
+	return [2]int{
+		d1p1(),
+		d1p2(),
+	}
 }
 
-func d1p1() {
+func d1p1() int {
+	//Step 1 open and scan the file
 	file, err := os.Open("./Ressources/day1_input.txt")
 
 	if err != nil {
@@ -98,6 +98,7 @@ func d1p1() {
 	sum := 0
 
 	for scanner.Scan() {
+		//find first and last digit in the string
 		chars := []rune(scanner.Text())
 		firstDigit := rune(0)
 		lastDigit := rune(0)
@@ -114,6 +115,7 @@ func d1p1() {
 			}
 		}
 
+		//convert the 2 single digits strings into one number
 		doubleDigit, err := strconv.Atoi(string(firstDigit) + string(lastDigit))
 
 		if err != nil {
@@ -123,28 +125,14 @@ func d1p1() {
 		sum += doubleDigit
 	}
 
-	fmt.Printf("Result Day1 Part1: %d \n", sum)
-
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+
+	return sum
 }
 
-func d1p2() {
-	file, err := os.Open("./Ressources/day1_input.txt")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer func() {
-		if err = file.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	scanner := bufio.NewScanner(file)
-
+func d1p2() int {
 	lookup := map[string]rune{
 		"one":   '1',
 		"two":   '2',
@@ -157,8 +145,24 @@ func d1p2() {
 		"nine":  '9',
 	}
 
+	//step 1 parse the file and scan it
+	file, err := os.Open("./Ressources/day1_input.txt")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	sum := 0
 
+	//look for text matching lookup table or digit
+	//convert the textNumbers to digit
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		chars := []rune(scanner.Text())
 		firstDigit := rune(0)
@@ -198,9 +202,9 @@ func d1p2() {
 		sum += doubleDigit
 	}
 
-	fmt.Printf("Result Day1 Part2: %d \n", sum)
-
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+
+	return sum
 }

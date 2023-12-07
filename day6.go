@@ -111,30 +111,40 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
-func Day6() {
-	d6p1()
-	d6p2()
+func Day6() [2]int {
+	return [2]int{
+		d6p1(),
+		d6p2(),
+	}
 }
 
-func d6p1() {
+func d6p1() int {
+	//step 1 open and scan the file
 	file, err := os.Open("./Ressources/day6_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	scanner := bufio.NewScanner(file)
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	raceDurations := []int{}
 	distancesTobeat := []int{}
 
+	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
+		//extract the time values first
 		splitTimes := strings.Split(scanner.Text(), "Time:")
 
 		if len(splitTimes) == 2 {
@@ -151,6 +161,7 @@ func d6p1() {
 			}
 		}
 
+		//the extract all the disatnce values
 		splitDistance := strings.Split(scanner.Text(), "Distance:")
 
 		if len(splitDistance) == 2 {
@@ -166,6 +177,10 @@ func d6p1() {
 				}
 			}
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
 	}
 
 	// speed  += time pressed
@@ -188,21 +203,30 @@ func d6p1() {
 		}
 	}
 
-	fmt.Printf("Result Day6 Part1: %d\n", errorMargin)
+	return errorMargin
 }
 
-func d6p2() {
+func d6p2() int {
+	//first open and scan the file
 	file, err := os.Open("./Ressources/day6_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	scanner := bufio.NewScanner(file)
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	raceDuration := 0
 	distanceTobeat := 0
 
+	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
+		//first find all the times and concatenate them by stripping the spaces
 		splitTimes := strings.Split(scanner.Text(), "Time:")
 
 		if len(splitTimes) == 2 {
@@ -220,6 +244,7 @@ func d6p2() {
 			raceDuration = v
 		}
 
+		//Second find all the distance and concatenate them by stripping the spaces
 		splitDistance := strings.Split(scanner.Text(), "Distance:")
 
 		if len(splitDistance) == 2 {
@@ -238,6 +263,10 @@ func d6p2() {
 		}
 	}
 
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	// speed  += time pressed
 	// time = max duration of a race
 	// distance = record to beat
@@ -250,5 +279,5 @@ func d6p2() {
 		}
 	}
 
-	fmt.Printf("Result Day6 Part2: %d\n", winWaysCount)
+	return winWaysCount
 }
