@@ -173,27 +173,31 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-const SEED_SOIL_MAP = "seed-to-soil map:"
-const SOIL_FERTILIZER_MAP = "soil-to-fertilizer map:"
-const FERTILIZER_WATER_MAP = "fertilizer-to-water map:"
-const WATER_LIGHT_MAP = "water-to-light map:"
-const LIGHT_TEMPERATURE = "light-to-temperature map:"
-const TEMPERATURE_HUMIDITY = "temperature-to-humidity map:"
-const HUMIDITY_LOCATION = "humidity-to-location map:"
+// main representation of the input from the exercise (seeds)
+type block struct {
+	start         int
+	end           int
+	slicedAlready bool
+}
+
+// main representation of the input categories filters (soil, water, etc..)
+type blockFilter struct {
+	start   int
+	end     int
+	newBase int
+}
 
 func Day5() {
 	d5p1()
 	d5p2()
 }
 
-type data struct {
-	category map[string][][3]int
-	seeds    []int
-}
-
-func Extract() data {
+// extract the txt input into a slice fo seeds :[]int ;and a slice for each category
+// the category slices contains a slice of filters : [][]blockFilter
+func Extract() ([][]blockFilter, []int) {
 	file, err := os.Open("./Ressources/day5_input.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -203,18 +207,18 @@ func Extract() data {
 
 	seedsList := make([]int, 0)
 
-	categoryMap := map[string][][3]int{
-		SEED_SOIL_MAP:        [][3]int{},
-		SOIL_FERTILIZER_MAP:  [][3]int{},
-		FERTILIZER_WATER_MAP: [][3]int{},
-		WATER_LIGHT_MAP:      [][3]int{},
-		LIGHT_TEMPERATURE:    [][3]int{},
-		TEMPERATURE_HUMIDITY: [][3]int{},
-		HUMIDITY_LOCATION:    [][3]int{},
+	categoryMap := [][]blockFilter{
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
 	}
 
 	lastLine := ""
-	currentCategory := ""
+	currentCategory := -1
 	lineID := 1
 
 	for scanner.Scan() {
@@ -229,53 +233,60 @@ func Extract() data {
 				seedsList = append(seedsList, seedId)
 			}
 		} else {
-
-			if lastLine == "" {
-				//changed category
-				currentCategory = scanner.Text()
-
-			} else if scanner.Text() != "" {
-				//fill current category with values
-				dataSplit := strings.Split(scanner.Text(), " ")
-
-				//check if data has correctly 3 pieces
-				if len(dataSplit) != 3 {
-					log.Fatal("data splitting went wrong, check data in row: \n" + scanner.Text())
+			//check if we enter a new category:
+			if scanner.Text() != "" {
+				if lastLine == "" {
+					currentCategory++
+					lastLine = scanner.Text()
+					continue
 				}
 
-				destinationRangeStart, err1 := strconv.Atoi(dataSplit[0])
-				sourceRangeStart, err2 := strconv.Atoi(dataSplit[1])
-				rangeLength, err3 := strconv.Atoi(dataSplit[2])
-
-				//error if any of the data can't be converted to int
-				if err1 != nil || err2 != nil || err3 != nil {
-					log.Fatal("ERROR destinationRangeStart, or sourceRangeStart or rangeLength couldn't parse to int")
+				line := strings.Split(scanner.Text(), " ")
+				if len(line) != 3 {
+					log.Fatal("no 3 numbers found in line:\"" + scanner.Text() + "\"")
 				}
 
-				//populate the category over the range provided
-				data := [3]int{destinationRangeStart, sourceRangeStart, rangeLength}
-				categoryMap[currentCategory] = append(categoryMap[currentCategory], data)
+				dst, err1 := strconv.Atoi(line[0])
+				src, err2 := strconv.Atoi(line[1])
+				size, err3 := strconv.Atoi(line[2])
+
+				if err1 != nil {
+					log.Fatal(err1)
+				}
+				if err2 != nil {
+					log.Fatal(err2)
+				}
+				if err3 != nil {
+					log.Fatal(err3)
+				}
+
+				filter := blockFilter{
+					start:   src,
+					end:     src + size - 1,
+					newBase: dst,
+				}
+
+				categoryMap[currentCategory] = append(categoryMap[currentCategory], filter)
 			}
 		}
+
 		lineID++
 		lastLine = scanner.Text()
 	}
 
-	data := data{
-		category: categoryMap,
-		seeds:    seedsList,
-	}
-
-	return data
+	return categoryMap, seedsList
 }
 
-func Converter(slice [][3]int, key int) int {
+// main logic for the conversion used in part 1 of the exercise
+// it work on the list of seed as if each element is a seed
+// unlike part2 that has seedID+range
+func Part1Converter(filters []blockFilter, key int) int {
 	result := -1
 
-	for i := 0; i < len(slice); i++ {
-		if key >= slice[i][1] && key < slice[i][1]+slice[i][2] {
+	for filterID := 0; filterID < len(filters); filterID++ {
+		if key >= filters[filterID].start && key < filters[filterID].end {
 			//       destination range start +  position - source range start
-			result = slice[i][0] + key - slice[i][1]
+			result = filters[filterID].newBase + key - filters[filterID].start
 			break
 		}
 	}
@@ -287,19 +298,20 @@ func Converter(slice [][3]int, key int) int {
 	}
 }
 
+// core logic of part1 return the result in print
 func d5p1() {
 
-	data := Extract()
+	category, seeds := Extract()
 
 	min := math.MaxInt
-	for i := 0; i < len(data.seeds); i++ {
-		s := Converter(data.category[SEED_SOIL_MAP], data.seeds[i])
-		s = Converter(data.category[SOIL_FERTILIZER_MAP], s)
-		s = Converter(data.category[FERTILIZER_WATER_MAP], s)
-		s = Converter(data.category[WATER_LIGHT_MAP], s)
-		s = Converter(data.category[LIGHT_TEMPERATURE], s)
-		s = Converter(data.category[TEMPERATURE_HUMIDITY], s)
-		s = Converter(data.category[HUMIDITY_LOCATION], s)
+	for i := 0; i < len(seeds); i++ {
+		s := Part1Converter(category[0], seeds[i])
+		s = Part1Converter(category[1], s)
+		s = Part1Converter(category[2], s)
+		s = Part1Converter(category[3], s)
+		s = Part1Converter(category[4], s)
+		s = Part1Converter(category[5], s)
+		s = Part1Converter(category[6], s)
 
 		if s < min {
 			min = s
@@ -310,127 +322,266 @@ func d5p1() {
 
 }
 
-/* input: a [2]int{position, range} and b [2]int{position, range}
- * output: [][2]int{{intersect pos, range},{non-intersect1 pos, range}, {non-intersect2 pos, range}}
- * check for: overlap bewteen a and b and output the different portions
- *** output[0] is intersecting part and range
- *** output[1] and  output[2] are non-intersecting part and range
- *** if there are no intersection or no non-intersection the representaion will be {-1,-1}
- */
-func rangeCutter(a pair, b pair) []pair {
-	output := []pair{}
-
-	intersectStart := -1
-	intersectEnd := -1
-	nonIntersectingStart1 := -1
-	nonIntersectingStart2 := -1
-	nonIntersectingEnd1 := -1
-	nonIntersectingEnd2 := -1
-
-	if a.end < b.start || b.end < a.start {
-		//fmt.Println("no overlap")
-		nonIntersectingStart1 = a.start
-		nonIntersectingEnd1 = a.end
-	} else if a.start >= b.start && a.end <= b.end {
-		//fmt.Println("full overlap")
-		intersectStart = a.start
-		intersectEnd = a.end
-	} else if a.start <= b.start && a.end <= b.end {
-		//fmt.Println("single point right")
-		intersectStart = a.end
-		intersectEnd = a.end
-		nonIntersectingStart1 = a.start
-		nonIntersectingEnd1 = intersectStart - 1
-	} else if a.end >= b.end && a.start >= b.end {
-		//fmt.Println("single point left")
-		intersectStart = a.start
-		intersectEnd = a.start
-		nonIntersectingStart1 = intersectEnd - 1
-		nonIntersectingEnd1 = a.end
-	} else if a.start < b.start && a.end <= b.end {
-		//fmt.Println("A overlap B from the left")
-		intersectStart = b.start
-		intersectEnd = a.end
-		nonIntersectingStart1 = a.start
-		nonIntersectingEnd1 = intersectStart - 1
-	} else if a.start >= b.start && a.end > b.end {
-		//fmt.Println("A overlap B from the right")
-		intersectStart = a.start
-		intersectEnd = b.end
-		nonIntersectingStart1 = intersectEnd + 1
-		nonIntersectingEnd1 = a.end
-	} else if b.start > a.start && b.end < a.end {
-		//fmt.Println("B cut A in 3")
-		intersectStart = b.start
-		intersectEnd = b.end
-		nonIntersectingStart1 = a.start
-		nonIntersectingEnd1 = intersectStart - 1
-		nonIntersectingStart2 = intersectEnd + 1
-		nonIntersectingEnd2 = a.end
+// detect overlap between a range A and a range B using their start/end as coordinates
+func checkIntersect(aStart int, aEnd int, bStart int, bEnd int) (int, string) {
+	if aEnd < bStart || bEnd < aStart {
+		if aEnd == bStart-1 {
+			return 7, "A glued to B by the left but no intersect"
+		} else if bEnd == aStart-1 {
+			return 8, "A glued to B by the right but no intersect"
+		} else {
+			return 0, "no overlap and no glued data"
+		}
+	} else if aStart >= bStart && aEnd <= bEnd {
+		return 1, "B fully overlap A"
+	} else if aStart <= bStart && aEnd <= bEnd {
+		return 2, "single point right"
+	} else if aEnd >= bEnd && aStart >= bEnd {
+		return 3, "single point left"
+	} else if aStart < bStart && aEnd <= bEnd {
+		return 4, "A overlap B from the left"
+	} else if aStart >= bStart && aEnd > bEnd {
+		return 5, "A overlap B from the right"
+	} else if bStart > aStart && bEnd < aEnd {
+		return 6, "A fully overlap B"
 	}
+	return -1, "ERROR case not handled"
+}
 
-	if intersectStart == -1 {
-		output = append(output, pair{
+// take 2 block and merge them so the ranges expressed are the smallest possible
+// Consider {-1,-1} as a void part
+func blockMerger(a block, b block) [2]block {
+	output := [2]block{
+		{
 			start: -1,
 			end:   -1,
-			size:  -1,
-		})
-	} else {
-		output = append(output, pair{
-			start: intersectStart,
-			end:   intersectEnd,
-			size:  intersectEnd - intersectStart + 1,
-		})
-	}
-
-	if nonIntersectingStart1 == -1 {
-		output = append(output, pair{
+		},
+		{
 			start: -1,
 			end:   -1,
-			size:  -1,
-		})
-	} else {
-		output = append(output, pair{
-			start: nonIntersectingStart1,
-			end:   nonIntersectingEnd1,
-			size:  nonIntersectingEnd1 - nonIntersectingStart1 + 1,
-		})
+		},
 	}
 
-	if nonIntersectingStart2 == -1 {
-		output = append(output, pair{
-			start: -1,
-			end:   -1,
-			size:  -1,
-		})
-	} else {
-		output = append(output, pair{
-			start: nonIntersectingStart2,
-			end:   nonIntersectingEnd2,
-			size:  nonIntersectingEnd2 - nonIntersectingStart2 + 1,
-		})
+	switch code, logMsg := checkIntersect(a.start, a.end, b.start, b.end); code {
+	case 0:
+		output[0] = a
+		output[1] = b
+	case 1:
+		output[0] = b
+	case 2:
+		output[0].start = a.start
+		output[0].end = b.end
+	case 3:
+		output[0].start = b.start
+		output[0].end = a.end
+	case 4:
+		output[0].start = a.start
+		output[0].end = b.end
+	case 5:
+		output[0].start = b.start
+		output[0].end = a.end
+	case 6:
+		output[0] = a
+	case 7:
+		output[0].start = a.start
+		output[0].end = b.end
+	case 8:
+		output[0].start = b.start
+		output[0].end = a.end
+	case -1:
+		log.Fatal(logMsg)
 	}
-	//fmt.Println(output)
+
 	return output
 }
 
-type pair struct {
-	start   int
-	end     int
-	size    int
-	checked bool
+// takes in 1 block and one filter and cut out the part of the block that fit the filter
+// will return all bits of the original bloc after the cut, expressed by their new
+// coordinates / range.
+// Consider {-1,-1} as a void part
+func filterCutBlock(a block, b blockFilter) []block {
+	output := []block{
+		{
+			start: -1,
+			end:   -1,
+		},
+		{
+			start: -1,
+			end:   -1,
+		},
+		{
+			start: -1,
+			end:   -1,
+		},
+	}
+
+	switch code, logMsg := checkIntersect(a.start, a.end, b.start, b.end); code {
+	case 0:
+		output[1].start = a.start
+		output[1].end = a.end
+	case 1:
+		output[0].start = a.start
+		output[0].end = a.end
+	case 2:
+		output[0].start = a.end
+		output[0].end = a.end
+		output[1].start = a.start
+		output[1].end = output[0].start - 1
+	case 3:
+		output[0].start = a.start
+		output[0].end = a.start
+		output[1].start = output[0].end - 1
+		output[1].end = a.end
+	case 4:
+		output[0].start = b.start
+		output[0].end = a.end
+		output[1].start = a.start
+		output[1].end = output[0].start - 1
+	case 5:
+		output[0].start = a.start
+		output[0].end = b.end
+		output[1].start = output[0].end + 1
+		output[1].end = a.end
+	case 6:
+		output[0].start = b.start
+		output[0].end = b.end
+		output[1].start = a.start
+		output[1].end = output[0].start - 1
+		output[2].start = output[0].end + 1
+		output[2].end = a.end
+	case -1:
+		log.Fatal(logMsg)
+	}
+
+	return output
 }
 
-func d5p2() {
-	data := Extract()
+// convert an input range START END to a filter map START END NEWBASE
+func filterConversion(inputValue int, filterSrc int, filterDst int) int {
+	return inputValue - filterSrc + filterDst
+}
 
-	if len(data.seeds)%2 != 0 {
+// takes in a slice and will compare each elements to merge and remove overlaps
+// return the same slice with hopefully less elements
+func checkForMerge(slice []block) []block {
+	for aBlockID := 0; aBlockID < len(slice); aBlockID++ {
+		for bBlockID := aBlockID + 1; bBlockID < len(slice); bBlockID++ {
+			merge := blockMerger(slice[aBlockID], slice[bBlockID])
+			slice[aBlockID].start = merge[0].start
+			slice[aBlockID].end = merge[0].end
+			if merge[1].start != -1 {
+				slice[bBlockID].start = merge[1].start
+				slice[bBlockID].end = merge[1].end
+			} else {
+				//swaping unwanted ID with last and shrink the slice size by 1
+				slice[bBlockID], slice[len(slice)-1] = slice[len(slice)-1], slice[bBlockID]
+				slice = slice[:len(slice)-1]
+				bBlockID--
+			}
+		}
+	}
+	return slice
+}
+
+// core logic of part 2, will return the result as print
+func d5p2() {
+	filters, seeds := Extract()
+
+	if len(seeds)%2 != 0 {
 		log.Fatal("ERROR : SEED/RANGE broken, needs to be a pair amount of numbers")
 	}
+
+	blocks := []block{}
+
+	//convert seed list to blocks
+	for seedID := 0; seedID < len(seeds); seedID += 2 {
+		newBlock := block{
+			start: seeds[seedID],
+			end:   seeds[seedID] + seeds[seedID+1] - 1,
+		}
+		blocks = append(blocks, newBlock)
+	}
+
+	//multi threading the scan
+	var wg sync.WaitGroup
+	multithreadLenght := len(blocks)
+	wg.Add(len(blocks))
+	packetOutput := []int{}
+
+	for blockID := 0; blockID < multithreadLenght; blockID++ {
+		go func(blockID int) {
+			defer wg.Done()
+
+			fmt.Println("starting blockID:", blockID, blocks[blockID])
+
+			//creating a packet for each bloc that will contain the splits of this block
+			packet := []block{
+				blocks[blockID],
+			}
+
+			for layerID := 0; layerID < len(filters); layerID++ {
+				for filterID := 0; filterID < len(filters[layerID]); filterID++ {
+					for extractID := 0; extractID < len(packet); extractID++ {
+						if packet[extractID].slicedAlready {
+							continue
+						}
+						//in each layer
+						cut := filterCutBlock(packet[extractID], filters[layerID][filterID])
+
+						if cut[0].start != -1 {
+
+							packet[extractID].start = filterConversion(
+								cut[0].start,
+								filters[layerID][filterID].start,
+								filters[layerID][filterID].newBase)
+
+							packet[extractID].end = filterConversion(
+								cut[0].end,
+								filters[layerID][filterID].start,
+								filters[layerID][filterID].newBase)
+
+							packet[extractID].slicedAlready = true
+
+							if cut[1].start != -1 {
+								packet = append(packet, cut[1])
+							}
+
+							if cut[2].start != -1 {
+								packet = append(packet, cut[2])
+							}
+
+						}
+					}
+				}
+
+				//regroup data to avoid slices getting to big layer after layer
+				packet = checkForMerge(packet)
+				for packetID := 0; packetID < len(packet); packetID++ {
+					packet[packetID].slicedAlready = false
+				}
+			}
+
+			// check for min for this final packet and push it to the output
+			packetMin := math.MaxInt
+			for packetID := 0; packetID < len(packet); packetID++ {
+				if packet[packetID].start < packetMin {
+					packetMin = packet[packetID].start
+				}
+			}
+			packetOutput = append(packetOutput, packetMin)
+			fmt.Println("ending blockID:", blockID, "min value of this block: ", packetMin)
+
+		}(blockID)
+	}
+
+	wg.Wait()
+
+	//check for real min after
 	min := math.MaxInt
-
-	//todo
-
+	for _, output := range packetOutput {
+		if output < min {
+			min = output
+		}
+	}
 	fmt.Printf("Result Day5 Part2: %d\n", min)
-
 }
