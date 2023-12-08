@@ -245,8 +245,8 @@ func d4p1() int {
 
 	for _, g := range cards {
 		count := 0
-		for winKey, _ := range g.winningNums {
-			for playerKey, _ := range g.playerNums {
+		for winKey := range g.winningNums {
+			for playerKey := range g.playerNums {
 				if playerKey == winKey {
 					count += g.playerNums[playerKey]
 					break
@@ -303,8 +303,8 @@ func d4p2() int {
 		c, ok := cards[i]
 		if ok {
 			winCount := 0
-			for winKey, _ := range cards[i].winningNums {
-				for playerKey, _ := range cards[i].playerNums {
+			for winKey := range cards[i].winningNums {
+				for playerKey := range cards[i].playerNums {
 
 					//check if this is a win
 					if playerKey == winKey {
