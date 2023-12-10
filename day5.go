@@ -326,32 +326,6 @@ func d5p1() int {
 	return min
 }
 
-// detect overlap between a range A and a range B using their start/end as coordinates
-func checkIntersect(aStart int, aEnd int, bStart int, bEnd int) (int, string) {
-	if aEnd < bStart || bEnd < aStart {
-		if aEnd == bStart-1 {
-			return 7, "A glued to B by the left but no intersect"
-		} else if bEnd == aStart-1 {
-			return 8, "A glued to B by the right but no intersect"
-		} else {
-			return 0, "no overlap and no glued data"
-		}
-	} else if aStart >= bStart && aEnd <= bEnd {
-		return 1, "B fully overlap A"
-	} else if aStart <= bStart && aEnd <= bEnd {
-		return 2, "single point right"
-	} else if aEnd >= bEnd && aStart >= bEnd {
-		return 3, "single point left"
-	} else if aStart < bStart && aEnd <= bEnd {
-		return 4, "A overlap B from the left"
-	} else if aStart >= bStart && aEnd > bEnd {
-		return 5, "A overlap B from the right"
-	} else if bStart > aStart && bEnd < aEnd {
-		return 6, "A fully overlap B"
-	}
-	return -1, "ERROR case not handled"
-}
-
 // take 2 block and merge them so the ranges expressed are the smallest possible
 // Consider {-1,-1} as a void part
 func blockMerger(a block, b block) [2]block {

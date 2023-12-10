@@ -191,16 +191,6 @@ func walkWithPatternUntilEqual(tree map[string]node, instructions []rune, a stri
 	}
 }
 
-// get the Least Common Multiple of A and B
-func LCM(a, b int) int {
-	for b != 0 {
-		remainder := a % b
-		a = b
-		b = remainder
-	}
-	return a
-}
-
 func d8p1() int {
 	instructions, tree := createTree("./Ressources/day8_input.txt")
 	return walkWithPatternUntilEqual(tree, instructions, "AAA", "ZZZ", false)

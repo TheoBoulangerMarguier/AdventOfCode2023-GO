@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 
@@ -13,6 +15,8 @@ func main() {
 		Day6(),
 		Day7(),
 		Day8(),
+		Day9(),
+		Day10(),
 	}
 
 	testResults(results)
@@ -28,6 +32,8 @@ func testResults(result [][2]int) {
 		{2374848, 39132886},
 		{253866470, 254494947},
 		{17873, 15746133679061},
+		{1987402313, 900},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
