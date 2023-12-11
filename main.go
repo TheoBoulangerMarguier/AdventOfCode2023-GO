@@ -17,6 +17,7 @@ func main() {
 		Day8(),
 		Day9(),
 		Day10(),
+		Day11(),
 	}
 
 	testResults(results)
@@ -34,6 +35,7 @@ func testResults(result [][2]int) {
 		{17873, 15746133679061},
 		{1987402313, 900},
 		{6886, 371},
+		{10289334, 649862989626},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
