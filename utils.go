@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"strconv"
 )
 
@@ -59,93 +58,4 @@ func checkIntersect(aStart int, aEnd int, bStart int, bEnd int) (int, string) {
 		return 6, "A fully overlap B"
 	}
 	return -1, "ERROR case not handled"
-}
-
-// check if an item exist in a slice
-// input: slice, item
-// output: bool
-func SliceContains(slice interface{}, item interface{}) bool {
-
-	// check that input slice is of type Slice
-	sliceValue := reflect.ValueOf(slice)
-	if sliceValue.Kind() != reflect.Slice {
-		panic("The first argument must be a slice")
-	}
-
-	// Type check if input item type matches input slice type
-	if sliceValue.Type().Elem() != reflect.TypeOf(item) {
-		panic("The item type does not match the slice element type")
-	}
-
-	// look for the item in the slice
-	for i := 0; i < sliceValue.Len(); i++ {
-		if reflect.DeepEqual(sliceValue.Index(i).Interface(), item) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// insert an item in a slice at a specific position
-// input slice pointer, item, index
-// output: modify directly the provided slice
-func SliceInsertAt(slicePtr interface{}, item interface{}, index int) {
-
-	// check if provided slice pointer is of correct type
-	sliceValue := reflect.ValueOf(slicePtr)
-	if sliceValue.Kind() != reflect.Ptr || sliceValue.Elem().Kind() != reflect.Slice {
-		panic("The first argument must be a pointer to a slice")
-	}
-
-	// Type check if input item type matches input slice type
-	slice := sliceValue.Elem()
-	if slice.Type().Elem() != reflect.TypeOf(item) {
-		panic("The item type does not match the slice element type")
-	}
-
-	// check if the index provided isn't out of bounds
-	if index < 0 || index > slice.Len() {
-		panic("Index is out of range")
-	}
-
-	sliceLen := slice.Len()
-	slice = reflect.Append(slice, reflect.Zero(slice.Type().Elem())) // Append a zero value to extend the slice
-
-	// Shift elements after the index to the right by one position
-	for i := sliceLen; i > index; i-- {
-		slice.Index(i).Set(slice.Index(i - 1))
-	}
-
-	// Insert the new item at the specified index
-	slice.Index(index).Set(reflect.ValueOf(item))
-
-	// Update the pointer to the modified slice
-	sliceValue.Elem().Set(slice)
-}
-
-// compare 2 slices and check if they are equal
-func SlicesEqual(slice1, slice2 interface{}) bool {
-	sliceValue1 := reflect.ValueOf(slice1)
-	sliceValue2 := reflect.ValueOf(slice2)
-
-	if sliceValue1.Kind() != reflect.Slice || sliceValue2.Kind() != reflect.Slice {
-		return false
-	}
-
-	if sliceValue1.Type() != sliceValue2.Type() {
-		return false
-	}
-
-	if sliceValue1.Len() != sliceValue2.Len() {
-		return false
-	}
-
-	for i := 0; i < sliceValue1.Len(); i++ {
-		if !reflect.DeepEqual(sliceValue1.Index(i).Interface(), sliceValue2.Index(i).Interface()) {
-			return false
-		}
-	}
-
-	return true
 }
