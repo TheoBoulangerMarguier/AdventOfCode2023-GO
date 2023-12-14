@@ -162,7 +162,7 @@ type Cell struct {
 	free bool
 }
 
-func loadData(path string) ([][]Cell, []Rock) {
+func loadData(path string) ([][]bool, [][2]int) {
 	file, err := os.Open(path)
 
 	if err != nil {
@@ -177,40 +177,27 @@ func loadData(path string) ([][]Cell, []Rock) {
 
 	scanner := bufio.NewScanner(file)
 
-	grid := [][]Cell{}
-	rocks := []Rock{}
+	grid := [][]bool{}
+	rocks := [][2]int{}
 	y := 0
 	for scanner.Scan() {
 		x := 0
-		grid = append(grid, []Cell{})
+		grid = append(grid, []bool{})
 
 		for _, c := range scanner.Text() {
 
 			if c == '.' {
 				//new cell free
-				newCell := Cell{
-					free: true,
-				}
-				grid[y] = append(grid[y], newCell)
+				grid[y] = append(grid[y], true)
 				x++
 			} else if c == '#' {
 				//new cell non free
-				newCell := Cell{
-					free: false,
-				}
-				grid[y] = append(grid[y], newCell)
+				grid[y] = append(grid[y], false)
 				x++
 			} else if c == 'O' {
 				//new rock && new cell
-				newCell := Cell{
-					free: false,
-				}
-				grid[y] = append(grid[y], newCell)
-
-				newRock := Rock{
-					pos: [2]int{y, x},
-				}
-				rocks = append(rocks, newRock)
+				grid[y] = append(grid[y], false)
+				rocks = append(rocks, [2]int{y, x})
 				x++
 			}
 		}
@@ -232,7 +219,7 @@ func d14p1() int {
 
 	sum := 0
 	for i := 0; i < len(rocks); i++ {
-		sum += len(grid) - rocks[i].pos[0]
+		sum += len(grid) - rocks[i][0]
 	}
 	return sum
 }
@@ -251,13 +238,13 @@ func d14p2() int {
 
 	sum := 0
 	for i := 0; i < len(rocks); i++ {
-		sum += len(grid) - rocks[i].pos[0]
+		sum += len(grid) - rocks[i][0]
 	}
 	return sum
 }
 
 // check if a coordinate is in grid's bounds
-func isInGrid(pos [2]int, grid [][]Cell) bool {
+func isInGrid(pos [2]int, grid [][]bool) bool {
 	if pos[0] < 0 || pos[0] >= len(grid) || pos[1] < 0 || pos[1] >= len(grid[0]) {
 		return false
 	}
@@ -265,22 +252,22 @@ func isInGrid(pos [2]int, grid [][]Cell) bool {
 }
 
 // celular automata that move rocks if condition met
-func tilt(grid [][]Cell, rocks []Rock, gravity [2]int) {
+func tilt(grid [][]bool, rocks [][2]int, gravity [2]int) {
 	hasAnyRockMoved := true
 
 	for hasAnyRockMoved {
 		hasAnyRockMoved = false
 
 		for i := 0; i < len(rocks); i++ {
-			currentPos := rocks[i].pos
+			currentPos := rocks[i]
 			nextPos := [2]int{
 				currentPos[0] + gravity[0],
 				currentPos[1] + gravity[1]}
 
-			if isInGrid(nextPos, grid) && grid[nextPos[0]][nextPos[1]].free {
-				grid[nextPos[0]][nextPos[1]].free = false
-				grid[currentPos[0]][currentPos[1]].free = true
-				rocks[i].pos = nextPos
+			if isInGrid(nextPos, grid) && grid[nextPos[0]][nextPos[1]] {
+				grid[nextPos[0]][nextPos[1]] = false
+				grid[currentPos[0]][currentPos[1]] = true
+				rocks[i] = nextPos
 				hasAnyRockMoved = true
 			}
 		}
