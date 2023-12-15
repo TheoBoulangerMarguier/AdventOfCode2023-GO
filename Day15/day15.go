@@ -4,7 +4,6 @@ package Day15
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 )
@@ -22,7 +21,6 @@ func d15p1() int {
 	for _, str := range strs {
 		sum += hash(str)
 	}
-
 	return sum
 }
 
@@ -46,9 +44,18 @@ func loadData(path string) []string {
 
 	scanner := bufio.NewScanner(file)
 
+	currentBloc := []rune{}
 	for scanner.Scan() {
-
+		for _, r := range scanner.Text() {
+			if r == ',' {
+				output = append(output, string(currentBloc))
+				currentBloc = []rune{}
+			} else {
+				currentBloc = append(currentBloc, r)
+			}
+		}
 	}
+	output = append(output, string(currentBloc))
 
 	if scanner.Err() != nil {
 		log.Fatal(scanner.Err())
@@ -58,10 +65,11 @@ func loadData(path string) []string {
 }
 
 func hash(str string) int {
-
+	currentValue := 0
 	for _, c := range str {
-		fmt.Println(string(c))
+		currentValue += int(c)
+		currentValue *= 17
+		currentValue %= 256
 	}
-
-	return 0
+	return currentValue
 }

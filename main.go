@@ -61,7 +61,7 @@ func testResults(result [][2]int) {
 		{7047, -1},
 		{35521, 34795},
 		{106517, 79723},
-		{-1, -1},
+		{502139, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
