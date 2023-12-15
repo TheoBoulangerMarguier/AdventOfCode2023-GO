@@ -1,26 +1,45 @@
 package main
 
 import (
+	"AdventOfCode/Day1"
+	"AdventOfCode/Day2"
+	"AdventOfCode/Day3"
+	"AdventOfCode/Day4"
+
+	//"AdventOfCode/Day5"
+	"AdventOfCode/Day10"
+	"AdventOfCode/Day11"
+	"AdventOfCode/Day6"
+	"AdventOfCode/Day7"
+	"AdventOfCode/Day8"
+	"AdventOfCode/Day9"
+
+	//"AdventOfCode/Day12"
+	"AdventOfCode/Day13"
+	"AdventOfCode/Day14"
+	"AdventOfCode/Day15"
+
 	"fmt"
 )
 
 func main() {
 
 	results := [][2]int{
-		Day1(),
-		Day2(),
-		Day3(),
-		Day4(),
-		{322500873, 108956227}, //Day5(),
-		Day6(),
-		Day7(),
-		Day8(),
-		Day9(),
-		Day10(),
-		Day11(),
-		{7047, -1}, //Day12(),
-		{35521, -1},
-		Day14(),
+		Day1.Day1(),
+		Day2.Day2(),
+		Day3.Day3(),
+		Day4.Day4(),
+		{322500873, 108956227}, //Day5.Day5(),
+		Day6.Day6(),
+		Day7.Day7(),
+		Day8.Day8(),
+		Day9.Day9(),
+		Day10.Day10(),
+		Day11.Day11(),
+		{7047, 0}, //Day12.Day12(),
+		Day13.Day13(),
+		Day14.Day14(),
+		Day15.Day15(),
 	}
 
 	testResults(results)
@@ -39,9 +58,10 @@ func testResults(result [][2]int) {
 		{1987402313, 900},
 		{6886, 371},
 		{10289334, 649862989626},
-		{7047, 0},
-		{35521, 0},
+		{7047, -1},
+		{35521, 34795},
 		{106517, 79723},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
