@@ -18,6 +18,7 @@ import (
 	"AdventOfCode/Day13"
 	"AdventOfCode/Day14"
 	"AdventOfCode/Day15"
+	"AdventOfCode/Day16"
 
 	"fmt"
 )
@@ -29,17 +30,18 @@ func main() {
 		Day2.Day2(),
 		Day3.Day3(),
 		Day4.Day4(),
-		{322500873, 108956227}, //Day5.Day5(),
+		{322500873, 108956227}, //Day5.Day5(), //found but execution is slow
 		Day6.Day6(),
 		Day7.Day7(),
 		Day8.Day8(),
 		Day9.Day9(),
 		Day10.Day10(),
 		Day11.Day11(),
-		{7047, 0}, //Day12.Day12(),
+		{7047, 0}, //Day12.Day12(), //only p1 found so far will come back later for p2
 		Day13.Day13(),
 		Day14.Day14(),
 		Day15.Day15(),
+		Day16.Day16(),
 	}
 
 	testResults(results)
@@ -61,7 +63,8 @@ func testResults(result [][2]int) {
 		{7047, -1},
 		{35521, 34795},
 		{106517, 79723},
-		{502139, -1},
+		{502139, 284132},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {

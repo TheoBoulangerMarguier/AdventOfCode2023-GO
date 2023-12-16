@@ -205,11 +205,8 @@ func SliceInsertSliceAt(slice interface{}, index int, insertSlice interface{}) e
 	return nil
 }
 
-// [Action]: remove from a slice X elements starting at Y position
-// [Input]: slice pointer , startIndex, count
-// [Output]: error
-func SliceRemoveAt(slice interface{}, startIndex int, count int) error {
-	sliceValue := reflect.ValueOf(slice)
+func SliceRemoveAt(slicePtr interface{}, startIndex int, count int) error {
+	sliceValue := reflect.ValueOf(slicePtr)
 	if sliceValue.Kind() != reflect.Ptr || sliceValue.Elem().Kind() != reflect.Slice {
 		return errors.New("SliceRemoveAt: input is not a pointer to a slice")
 	}
@@ -239,7 +236,7 @@ func SliceRemoveAt(slice interface{}, startIndex int, count int) error {
 		newSlice.Index(i - count).Set(sliceValue.Index(i))
 	}
 
-	// Update original slice
+	// Update original slice through the pointer
 	sliceValue.Set(newSlice)
 
 	return nil
