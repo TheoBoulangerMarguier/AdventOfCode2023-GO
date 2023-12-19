@@ -80,7 +80,16 @@ but not moving more than three consecutive blocks in the same direction,
 what is the least heat loss it can incur?
 */
 
-package day17
+package Day17
+
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"math"
+	"os"
+	"strconv"
+)
 
 func Day17() [2]int {
 	return [2]int{
@@ -89,10 +98,231 @@ func Day17() [2]int {
 	}
 }
 
+type Vector2 struct {
+	x, y int
+}
+
+type Node struct {
+	weight   int
+	g, h, f  int
+	parent   Vector2
+	lastDir  Vector2
+	dirCount int
+}
+
+type Grid struct {
+	size  Vector2
+	nodes map[Vector2]Node
+	open  []Vector2
+	close []Vector2
+}
+
+func loadData(path string) Grid {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	scanner := bufio.NewScanner(file)
+	grid := Grid{Vector2{0, 0}, map[Vector2]Node{}, []Vector2{}, []Vector2{}}
+	x, y := 0, 0
+	for scanner.Scan() {
+		x = 0
+		for _, r := range scanner.Text() {
+			v, err := strconv.Atoi(string(r))
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				node := Node{
+					v,
+					0, 0, 0,
+					Vector2{-1, -1},
+					Vector2{0, 0},
+					0,
+				}
+				grid.nodes[Vector2{x, y}] = node
+			}
+			x++
+		}
+		y++
+	}
+	grid.size = Vector2{x, y}
+
+	if scanner.Err() != nil {
+		log.Fatal(scanner.Err())
+	}
+
+	return grid
+}
+
 func d17p1() int {
+	/* INPUT : "./Day17/Ressources/day17_input-mini.txt"
+
+	11199
+	12199
+	99199
+	99131
+	99111
+
+	*/
+	grid := loadData("./Day17/Ressources/day17_input-mini.txt")
+
+	start := Vector2{0, 0}
+	end := Vector2{grid.size.x - 1, grid.size.y - 1}
+
+	grid.open = append(grid.open, start)
+
+	completed := false
+	for !completed {
+		//get the lowest F cost Node from the open list
+		i, current := getLowestFCostPos(grid)
+
+		//move this node from open to close list
+		grid.open = append(grid.open[:i], grid.open[i+1:]...)
+		grid.close = append(grid.close, current)
+
+		//early break if we find the end node
+		if current == end {
+			completed = true
+			break
+		}
+
+		//get all direct neighbours		 {left}	 {right}   {up}    {down}
+		for _, offset := range []Vector2{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+			neighbourPos := Vector2{current.x + offset.x, current.y + offset.y}
+
+			//check if the position is valid in the grid
+			_, inGrid := grid.nodes[neighbourPos]
+			if !inGrid {
+				continue
+			}
+
+			//check if the position is not in the grid or if we can still move in this direction
+			inCloseList := contain(grid.close, neighbourPos)
+			reachedMaxStep := grid.nodes[current].dirCount == 3 &&
+				offset == grid.nodes[current].lastDir
+
+			if inCloseList || reachedMaxStep {
+				continue
+			}
+
+			//calculate neighbour GHF costs
+			neighbourG := grid.nodes[neighbourPos].weight + grid.nodes[current].g
+			neighbourH := manhattanDistance(neighbourPos, end)
+			neighbourF := neighbourG + neighbourH
+
+			//check if not in open or path is shorter than existing
+			inOpenList := contain(grid.open, neighbourPos)
+			if !inOpenList || neighbourG < grid.nodes[neighbourPos].g {
+
+				//update neighbour node data in grid
+				nodeUpdate := grid.nodes[neighbourPos]
+				nodeUpdate.g = neighbourG
+				nodeUpdate.h = neighbourH
+				nodeUpdate.f = neighbourF
+				nodeUpdate.parent = current
+				nodeUpdate.lastDir = offset
+
+				//update directional counter
+				if grid.nodes[current].lastDir == offset {
+					nodeUpdate.dirCount = grid.nodes[current].dirCount + 1
+				} else {
+					nodeUpdate.dirCount = 1
+				}
+
+				grid.nodes[neighbourPos] = nodeUpdate
+
+				//register to the open list for next iteration
+				if !inOpenList {
+					grid.open = append(grid.open, neighbourPos)
+				}
+			}
+		}
+	}
+
+	//build path
+	path := []Vector2{}
+	current := end
+	for current != start {
+		path = append(path, current)
+		current = grid.nodes[current].parent
+	}
+	fmt.Println()
+
+	//print path
+	sum := 0
+	for y := 0; y < grid.size.y; y++ {
+		for x := 0; x < grid.size.x; x++ {
+			if contain(path, Vector2{x, y}) {
+				fmt.Print(grid.nodes[Vector2{x, y}].weight)
+				sum += grid.nodes[Vector2{x, y}].weight
+			} else {
+				fmt.Print(".")
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+	fmt.Println("path sum weights:", sum)
+
+	/*ISSUE, output :
+
+	.11..
+	..1..
+	..1..
+	..131
+	....1
+
+	SUM : 10
+	EXPECTED: 9
+
+	*/
+
 	return 0
 }
 
 func d17p2() int {
 	return 0
+}
+
+func getLowestFCostPos(grid Grid) (int, Vector2) {
+	empty := Vector2{-1, -1}
+	minPos := Vector2{-1, -1}
+	minID := -1
+	for i, nodePos := range grid.open {
+		if minPos == empty {
+			minPos = nodePos
+			minID = i
+			continue
+		}
+
+		if grid.nodes[nodePos].f < grid.nodes[minPos].f {
+			minPos = nodePos
+			minID = i
+		} else if grid.nodes[nodePos].g == grid.nodes[minPos].g &&
+			grid.nodes[nodePos].h < grid.nodes[minPos].h {
+			minID = i
+			minPos = nodePos
+		}
+	}
+	return minID, minPos
+}
+
+func manhattanDistance(p1, p2 Vector2) int {
+	return int(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y)))
+}
+
+func contain(slice []Vector2, item Vector2) bool {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == item {
+			return true
+		}
+	}
+	return false
 }

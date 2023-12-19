@@ -1,11 +1,7 @@
 package main
 
 import (
-
-	//"AdventOfCode/Day5"
-
-	//"AdventOfCode/Day12"
-
+	"AdventOfCode/Day17"
 	"fmt"
 )
 
@@ -28,6 +24,7 @@ func main() {
 		{-1, -1}, //Day14.Day14(),
 		{-1, -1}, //Day15.Day15(),
 		{-1, -1}, //Day16.Day16(), //found but execution is slow
+		Day17.Day17(),
 	}
 
 	testResults(results)
@@ -51,6 +48,7 @@ func testResults(result [][2]int) {
 		{106517, 79723},
 		{502139, 284132},
 		{7927, 8246},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
