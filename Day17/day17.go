@@ -91,6 +91,26 @@ import (
 	"strconv"
 )
 
+type Point struct {
+	x, y int
+}
+
+type Node struct {
+	weight  int
+	g, h, f int
+	parent  Point
+	dir     Point
+	steps   int
+}
+
+type Grid struct {
+	size  Point
+	nodes map[Point]Node
+	open  []Point
+	close []Point
+}
+
+// called by main do display the result of both parts
 func Day17() [2]int {
 	return [2]int{
 		d17p1(),
@@ -98,39 +118,24 @@ func Day17() [2]int {
 	}
 }
 
-type Vector2 struct {
-	x, y int
-}
-
-type Node struct {
-	weight   int
-	g, h, f  int
-	parent   Vector2
-	lastDir  Vector2
-	dirCount int
-}
-
-type Grid struct {
-	size  Vector2
-	nodes map[Vector2]Node
-	open  []Vector2
-	close []Vector2
-}
-
+// get data from input file, Create a grid and fill it with Nodes
 func loadData(path string) Grid {
+	//open the file and check for error
 	file, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//on closing the file check for error
 	defer func() {
 		if err := file.Close(); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
+	//walk through the input and construct the default nodes
 	scanner := bufio.NewScanner(file)
-	grid := Grid{Vector2{0, 0}, map[Vector2]Node{}, []Vector2{}, []Vector2{}}
+	grid := Grid{Point{0, 0}, map[Point]Node{}, []Point{}, []Point{}}
 	x, y := 0, 0
 	for scanner.Scan() {
 		x = 0
@@ -142,18 +147,19 @@ func loadData(path string) Grid {
 				node := Node{
 					v,
 					0, 0, 0,
-					Vector2{-1, -1},
-					Vector2{0, 0},
+					Point{-1, -1},
+					Point{0, 0},
 					0,
 				}
-				grid.nodes[Vector2{x, y}] = node
+				grid.nodes[Point{x, y}] = node
 			}
 			x++
 		}
 		y++
 	}
-	grid.size = Vector2{x, y}
+	grid.size = Point{x, y}
 
+	//check if scanner encountered error during the scan
 	if scanner.Err() != nil {
 		log.Fatal(scanner.Err())
 	}
@@ -162,81 +168,70 @@ func loadData(path string) Grid {
 }
 
 func d17p1() int {
-	/* INPUT : "./Day17/Ressources/day17_input-mini.txt"
-
-	11199
-	12199
-	99199
-	99131
-	99111
-
-	*/
+	//initialization
 	grid := loadData("./Day17/Ressources/day17_input-mini.txt")
-
-	start := Vector2{0, 0}
-	end := Vector2{grid.size.x - 1, grid.size.y - 1}
-
+	start := Point{0, 0}
+	end := Point{grid.size.x - 1, grid.size.y - 1}
 	grid.open = append(grid.open, start)
-
 	completed := false
+
+	//Core logic of A*
 	for !completed {
 		//get the lowest F cost Node from the open list
-		i, current := getLowestFCostPos(grid)
+		i, currentPos := getLowestFCostPos(grid)
+		currentNode := grid.nodes[currentPos]
 
 		//move this node from open to close list
 		grid.open = append(grid.open[:i], grid.open[i+1:]...)
-		grid.close = append(grid.close, current)
+		grid.close = append(grid.close, currentPos)
 
 		//early break if we find the end node
-		if current == end {
+		if currentPos == end {
 			completed = true
 			break
 		}
 
 		//get all direct neighbours		 {left}	 {right}   {up}    {down}
-		for _, offset := range []Vector2{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
-			neighbourPos := Vector2{current.x + offset.x, current.y + offset.y}
+		for _, offset := range []Point{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+			neighbourPos := Point{currentPos.x + offset.x, currentPos.y + offset.y}
 
 			//check if the position is valid in the grid
-			_, inGrid := grid.nodes[neighbourPos]
-			if !inGrid {
+			if _, inGrid := grid.nodes[neighbourPos]; !inGrid {
 				continue
 			}
 
 			//check if the position is not in the grid or if we can still move in this direction
-			inCloseList := contain(grid.close, neighbourPos)
-			reachedMaxStep := grid.nodes[current].dirCount == 3 &&
-				offset == grid.nodes[current].lastDir
+			if contain(grid.close, neighbourPos) || currentNode.steps == 3 && offset == currentNode.dir {
+				continue
+			}
 
-			if inCloseList || reachedMaxStep {
+			//avoid backtrack
+			invert := Point{currentNode.dir.x * -1, currentNode.dir.y * -1}
+			if offset == invert {
 				continue
 			}
 
 			//calculate neighbour GHF costs
-			neighbourG := grid.nodes[neighbourPos].weight + grid.nodes[current].g
+			neighbourNode := grid.nodes[neighbourPos]
+			neighbourG := neighbourNode.weight + currentNode.g
 			neighbourH := manhattanDistance(neighbourPos, end)
 			neighbourF := neighbourG + neighbourH
 
 			//check if not in open or path is shorter than existing
 			inOpenList := contain(grid.open, neighbourPos)
-			if !inOpenList || neighbourG < grid.nodes[neighbourPos].g {
+			if !inOpenList || neighbourG < neighbourNode.g {
 
 				//update neighbour node data in grid
-				nodeUpdate := grid.nodes[neighbourPos]
-				nodeUpdate.g = neighbourG
-				nodeUpdate.h = neighbourH
-				nodeUpdate.f = neighbourF
-				nodeUpdate.parent = current
-				nodeUpdate.lastDir = offset
+				neighbourNode.g = neighbourG
+				neighbourNode.h = neighbourH
+				neighbourNode.f = neighbourF
+				neighbourNode.parent = currentPos
+				neighbourNode.dir = offset
 
-				//update directional counter
-				if grid.nodes[current].lastDir == offset {
-					nodeUpdate.dirCount = grid.nodes[current].dirCount + 1
-				} else {
-					nodeUpdate.dirCount = 1
-				}
+				//update directional counter either increase of set to 1
+				neighbourNode.steps = getUpdatedStepCount(currentNode, offset)
 
-				grid.nodes[neighbourPos] = nodeUpdate
+				grid.nodes[neighbourPos] = neighbourNode
 
 				//register to the open list for next iteration
 				if !inOpenList {
@@ -246,22 +241,77 @@ func d17p1() int {
 		}
 	}
 
-	//build path
-	path := []Vector2{}
+	//get resulting path and the sum of the weights travelled
+	path, sum := getPath(start, end, grid)
+	printPath(grid, path)
+
+	return sum
+}
+
+func d17p2() int {
+	return 0
+}
+
+// look into the open nodes and will get the one withe the lowest F cost
+// in case there is a tie, get the one that as the lowest H cost
+func getLowestFCostPos(grid Grid) (int, Point) {
+	empty := Point{-1, -1}
+	minPos := empty
+	minID := -1
+	for i, nodePos := range grid.open {
+		if minPos == empty {
+			minPos, minID = nodePos, i
+			continue
+		}
+
+		node := grid.nodes[nodePos]
+		minNode := grid.nodes[minPos]
+
+		if node.f < minNode.f {
+			minPos, minID = nodePos, i
+		} else if node.g == minNode.g && node.h < minNode.h {
+			minPos, minID = nodePos, i
+		}
+	}
+	return minID, minPos
+}
+
+// get the manhattan distance between 2 points of the grid
+func manhattanDistance(p1, p2 Point) int {
+	return int(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y)))
+}
+
+// check a Point item is in the specified slice
+func contain(slice []Point, item Point) bool {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == item {
+			return true
+		}
+	}
+	return false
+}
+
+// backtrack the parent node from end to start to get the shortest path
+func getPath(start Point, end Point, grid Grid) ([]Point, int) {
+	path := []Point{}
 	current := end
+	sum := 0
 	for current != start {
+		sum += grid.nodes[current].weight
 		path = append(path, current)
 		current = grid.nodes[current].parent
 	}
-	fmt.Println()
+	return path, sum
+}
 
-	//print path
+// helper to print the final state of the grid once path is found, will show weight
+func printPath(grid Grid, path []Point) {
 	sum := 0
 	for y := 0; y < grid.size.y; y++ {
 		for x := 0; x < grid.size.x; x++ {
-			if contain(path, Vector2{x, y}) {
-				fmt.Print(grid.nodes[Vector2{x, y}].weight)
-				sum += grid.nodes[Vector2{x, y}].weight
+			if contain(path, Point{x, y}) {
+				fmt.Print(grid.nodes[Point{x, y}].weight)
+				sum += grid.nodes[Point{x, y}].weight
 			} else {
 				fmt.Print(".")
 			}
@@ -270,59 +320,13 @@ func d17p1() int {
 	}
 	fmt.Println()
 	fmt.Println("path sum weights:", sum)
-
-	/*ISSUE, output :
-
-	.11..
-	..1..
-	..1..
-	..131
-	....1
-
-	SUM : 10
-	EXPECTED: 9
-
-	*/
-
-	return 0
 }
 
-func d17p2() int {
-	return 0
-}
-
-func getLowestFCostPos(grid Grid) (int, Vector2) {
-	empty := Vector2{-1, -1}
-	minPos := Vector2{-1, -1}
-	minID := -1
-	for i, nodePos := range grid.open {
-		if minPos == empty {
-			minPos = nodePos
-			minID = i
-			continue
-		}
-
-		if grid.nodes[nodePos].f < grid.nodes[minPos].f {
-			minPos = nodePos
-			minID = i
-		} else if grid.nodes[nodePos].g == grid.nodes[minPos].g &&
-			grid.nodes[nodePos].h < grid.nodes[minPos].h {
-			minID = i
-			minPos = nodePos
-		}
+// increase the step count by 1 if the direction is teh same otherwise will return 1
+func getUpdatedStepCount(currentNode Node, direction Point) int {
+	if currentNode.dir == direction {
+		return currentNode.steps + 1
+	} else {
+		return 1
 	}
-	return minID, minPos
-}
-
-func manhattanDistance(p1, p2 Vector2) int {
-	return int(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y)))
-}
-
-func contain(slice []Vector2, item Vector2) bool {
-	for i := 0; i < len(slice); i++ {
-		if slice[i] == item {
-			return true
-		}
-	}
-	return false
 }
