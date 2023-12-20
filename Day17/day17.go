@@ -84,7 +84,6 @@ package Day17
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -96,18 +95,13 @@ type Point struct {
 }
 
 type Node struct {
-	weight  int
-	g, h, f int
-	parent  Point
-	dir     Point
-	steps   int
+	pos, dir Point
+	steps    int
 }
 
 type Grid struct {
 	size  Point
-	nodes map[Point]Node
-	open  []Point
-	close []Point
+	costs map[Point]int
 }
 
 // called by main do display the result of both parts
@@ -135,7 +129,7 @@ func loadData(path string) Grid {
 
 	//walk through the input and construct the default nodes
 	scanner := bufio.NewScanner(file)
-	grid := Grid{Point{0, 0}, map[Point]Node{}, []Point{}, []Point{}}
+	grid := Grid{Point{0, 0}, map[Point]int{}}
 	x, y := 0, 0
 	for scanner.Scan() {
 		x = 0
@@ -144,14 +138,7 @@ func loadData(path string) Grid {
 			if err != nil {
 				log.Fatal(err)
 			} else {
-				node := Node{
-					v,
-					0, 0, 0,
-					Point{-1, -1},
-					Point{0, 0},
-					0,
-				}
-				grid.nodes[Point{x, y}] = node
+				grid.costs[Point{x, y}] = v
 			}
 			x++
 		}
@@ -167,113 +154,132 @@ func loadData(path string) Grid {
 	return grid
 }
 
+// part 1, find best path with constrain of max 3 steps
 func d17p1() int {
-	//initialization
-	grid := loadData("./Day17/Ressources/day17_input-mini.txt")
-	start := Point{0, 0}
-	end := Point{grid.size.x - 1, grid.size.y - 1}
-	grid.open = append(grid.open, start)
-	completed := false
+	grid := loadData("./Day17/Ressources/day17_input.txt")
+	start := Node{Point{0, 0}, Point{0, 0}, 0}
+	goal := Node{Point{grid.size.x - 1, grid.size.y - 1}, Point{0, 0}, 0}
+	path, _ := AStar(start, goal, grid, 1, 3)
+	sum := 0
+	for _, p := range path {
+		sum += grid.costs[p.pos]
+	}
+	return sum - grid.costs[start.pos]
+}
 
-	//Core logic of A*
-	for !completed {
-		//get the lowest F cost Node from the open list
-		i, currentPos := getLowestFCostPos(grid)
-		currentNode := grid.nodes[currentPos]
+// part 2 find best path with steps between 4 and 10
+func d17p2() int {
+	grid := loadData("./Day17/Ressources/day17_input.txt")
+	start := Node{Point{0, 0}, Point{0, 0}, 0}
+	goal := Node{Point{grid.size.x - 1, grid.size.y - 1}, Point{0, 0}, 0}
+	path, _ := AStar(start, goal, grid, 4, 10)
+	sum := 0
+	for _, p := range path {
+		sum += grid.costs[p.pos]
+	}
+	return sum - grid.costs[start.pos]
+}
 
-		//move this node from open to close list
-		grid.open = append(grid.open[:i], grid.open[i+1:]...)
-		grid.close = append(grid.close, currentPos)
+func AStar(start, goal Node, grid Grid, minStep int, maxStep int) ([]Node, bool) {
 
-		//early break if we find the end node
-		if currentPos == end {
-			completed = true
-			break
+	//intitialization
+	openSet := []Node{start}
+	cameFrom := map[Node]Node{}
+	gScore, fScore := map[Node]int{}, map[Node]int{}
+	gScore[start] = 0
+	fScore[start] = manhattanDistance(start.pos, goal.pos)
+
+	//check all the open node until none are left
+	for len(openSet) != 0 {
+
+		//select you current node based on lwoest F score
+		i, current := lowestFScore(openSet, gScore)
+		if pointEqual(current.pos, goal.pos) {
+			return reconstructPath(cameFrom, current), true
 		}
+		openSet = append(openSet[:i], openSet[i+1:]...)
 
-		//get all direct neighbours		 {left}	 {right}   {up}    {down}
+		//check all neighbours of the current node
 		for _, offset := range []Point{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
-			neighbourPos := Point{currentPos.x + offset.x, currentPos.y + offset.y}
+			neighborV := Node{Point{current.pos.x + offset.x, current.pos.y + offset.y}, offset, 0}
+			invertOffset := Point{offset.x * -1, offset.y * -1}
 
-			//check if the position is valid in the grid
-			if _, inGrid := grid.nodes[neighbourPos]; !inGrid {
+			//confirm that this neighbor is within constrains
+			validPos := isInGrid(neighborV.pos, grid)
+			aboveMaxStep := current.dir == offset && current.steps == maxStep
+			belowMinStep := current.dir != offset && current.steps < minStep && !pointEqual(current.pos, start.pos)
+
+			if !validPos || aboveMaxStep || belowMinStep {
 				continue
 			}
 
-			//check if the position is not in the grid or if we can still move in this direction
-			if contain(grid.close, neighbourPos) || currentNode.steps == 3 && offset == currentNode.dir {
+			//update the step count taken based on direction from current to neighbor
+			if current.dir == offset {
+				neighborV.steps = current.steps + 1
+			} else if current.dir == invertOffset {
 				continue
+			} else {
+				neighborV.steps = 1
 			}
 
-			//avoid backtrack
-			invert := Point{currentNode.dir.x * -1, currentNode.dir.y * -1}
-			if offset == invert {
-				continue
+			//check if neighbor is a good match to be added to open list
+			tentativeGScore := gScore[current] + grid.costs[neighborV.pos]
+			_, initialized := gScore[neighborV]
+			if !initialized {
+				gScore[neighborV] = math.MaxInt
 			}
-
-			//calculate neighbour GHF costs
-			neighbourNode := grid.nodes[neighbourPos]
-			neighbourG := neighbourNode.weight + currentNode.g
-			neighbourH := manhattanDistance(neighbourPos, end)
-			neighbourF := neighbourG + neighbourH
-
-			//check if not in open or path is shorter than existing
-			inOpenList := contain(grid.open, neighbourPos)
-			if !inOpenList || neighbourG < neighbourNode.g {
-
-				//update neighbour node data in grid
-				neighbourNode.g = neighbourG
-				neighbourNode.h = neighbourH
-				neighbourNode.f = neighbourF
-				neighbourNode.parent = currentPos
-				neighbourNode.dir = offset
-
-				//update directional counter either increase of set to 1
-				neighbourNode.steps = getUpdatedStepCount(currentNode, offset)
-
-				grid.nodes[neighbourPos] = neighbourNode
-
-				//register to the open list for next iteration
-				if !inOpenList {
-					grid.open = append(grid.open, neighbourPos)
+			if tentativeGScore < gScore[neighborV] {
+				cameFrom[neighborV] = current
+				gScore[neighborV] = tentativeGScore
+				fScore[neighborV] = tentativeGScore + manhattanDistance(neighborV.pos, goal.pos)
+				if !contain(openSet, neighborV) {
+					openSet = append(openSet, neighborV)
 				}
 			}
 		}
 	}
 
-	//get resulting path and the sum of the weights travelled
-	path, sum := getPath(start, end, grid)
-	printPath(grid, path)
-
-	return sum
+	return []Node{}, false
 }
 
-func d17p2() int {
-	return 0
-}
+func reconstructPath(cameFrom map[Node]Node, current Node) []Node {
+	totalPath := []Node{current}
 
-// look into the open nodes and will get the one withe the lowest F cost
-// in case there is a tie, get the one that as the lowest H cost
-func getLowestFCostPos(grid Grid) (int, Point) {
-	empty := Point{-1, -1}
-	minPos := empty
-	minID := -1
-	for i, nodePos := range grid.open {
-		if minPos == empty {
-			minPos, minID = nodePos, i
-			continue
-		}
-
-		node := grid.nodes[nodePos]
-		minNode := grid.nodes[minPos]
-
-		if node.f < minNode.f {
-			minPos, minID = nodePos, i
-		} else if node.g == minNode.g && node.h < minNode.h {
-			minPos, minID = nodePos, i
+	ended := false
+	for !ended {
+		v, ok := cameFrom[current]
+		if ok {
+			current = v
+			totalPath = append([]Node{current}, totalPath...)
+		} else {
+			ended = true
 		}
 	}
-	return minID, minPos
+
+	return totalPath
+}
+
+func lowestFScore(slice []Node, gScore map[Node]int) (int, Node) {
+	min := math.MaxInt
+	minID := -1
+	var pos Node
+
+	for i, p := range slice {
+		s, ok := gScore[p]
+		if ok {
+			if s < min {
+				pos = p
+				min = s
+				minID = i
+			}
+		}
+	}
+
+	return minID, pos
+}
+
+func pointEqual(a Point, b Point) bool {
+	return (a.x == b.x && a.y == b.y)
 }
 
 // get the manhattan distance between 2 points of the grid
@@ -282,51 +288,21 @@ func manhattanDistance(p1, p2 Point) int {
 }
 
 // check a Point item is in the specified slice
-func contain(slice []Point, item Point) bool {
+func contain(slice []Node, item Node) bool {
 	for i := 0; i < len(slice); i++ {
-		if slice[i] == item {
+		if slice[i].dir.x == item.dir.x && slice[i].dir.y == item.dir.y &&
+			slice[i].pos.x == item.pos.x && slice[i].pos.y == item.pos.y &&
+			slice[i].steps == item.steps {
 			return true
 		}
 	}
 	return false
 }
 
-// backtrack the parent node from end to start to get the shortest path
-func getPath(start Point, end Point, grid Grid) ([]Point, int) {
-	path := []Point{}
-	current := end
-	sum := 0
-	for current != start {
-		sum += grid.nodes[current].weight
-		path = append(path, current)
-		current = grid.nodes[current].parent
-	}
-	return path, sum
-}
+func isInGrid(pos Point, grid Grid) bool {
+	if pos.x < 0 || pos.y < 0 || pos.x > grid.size.x-1 || pos.y > grid.size.y-1 {
 
-// helper to print the final state of the grid once path is found, will show weight
-func printPath(grid Grid, path []Point) {
-	sum := 0
-	for y := 0; y < grid.size.y; y++ {
-		for x := 0; x < grid.size.x; x++ {
-			if contain(path, Point{x, y}) {
-				fmt.Print(grid.nodes[Point{x, y}].weight)
-				sum += grid.nodes[Point{x, y}].weight
-			} else {
-				fmt.Print(".")
-			}
-		}
-		fmt.Println()
+		return false
 	}
-	fmt.Println()
-	fmt.Println("path sum weights:", sum)
-}
-
-// increase the step count by 1 if the direction is teh same otherwise will return 1
-func getUpdatedStepCount(currentNode Node, direction Point) int {
-	if currentNode.dir == direction {
-		return currentNode.steps + 1
-	} else {
-		return 1
-	}
+	return true
 }

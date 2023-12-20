@@ -1,7 +1,6 @@
 package main
 
 import (
-	"AdventOfCode/Day17"
 	"fmt"
 )
 
@@ -12,7 +11,7 @@ func main() {
 		{-1, -1}, //Day2.Day2(),
 		{-1, -1}, //Day3.Day3(),
 		{-1, -1}, //Day4.Day4(),
-		{-1, -1}, //Day5.Day5(), //found but execution is slow
+		{-1, -1}, //Day5.Day5(), //slow
 		{-1, -1}, //Day6.Day6(),
 		{-1, -1}, //Day7.Day7(),
 		{-1, -1}, //Day8.Day8(),
@@ -23,8 +22,8 @@ func main() {
 		{-1, -1}, //Day13.Day13(),
 		{-1, -1}, //Day14.Day14(),
 		{-1, -1}, //Day15.Day15(),
-		{-1, -1}, //Day16.Day16(), //found but execution is slow
-		Day17.Day17(),
+		{-1, -1}, //Day16.Day16(), //slow
+		{-1, -1}, //Day17.Day17(), //slow
 	}
 
 	testResults(results)
@@ -48,7 +47,7 @@ func testResults(result [][2]int) {
 		{106517, 79723},
 		{502139, 284132},
 		{7927, 8246},
-		{-1, -1},
+		{785, 922},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
