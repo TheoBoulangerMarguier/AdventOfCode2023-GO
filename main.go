@@ -1,6 +1,7 @@
 package main
 
 import (
+	"AdventOfCode/Day18"
 	"fmt"
 )
 
@@ -24,6 +25,7 @@ func main() {
 		{-1, -1}, //Day15.Day15(),
 		{-1, -1}, //Day16.Day16(), //slow
 		{-1, -1}, //Day17.Day17(), //slow
+		Day18.Day18(),
 	}
 
 	testResults(results)
@@ -48,6 +50,7 @@ func testResults(result [][2]int) {
 		{502139, 284132},
 		{7927, 8246},
 		{785, 922},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
