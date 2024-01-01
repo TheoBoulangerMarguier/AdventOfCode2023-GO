@@ -1,10 +1,14 @@
 /*
 --- Day 19: Aplenty ---
-The Elves of Gear Island are thankful for your help and send you on your way. They even have a hang glider that someone stole from Desert Island;
-since you're already going that direction, it would help them a lot if you would use it to get down there and return it to them.
+The Elves of Gear Island are thankful for your help and send you on your way.
+They even have a hang glider that someone stole from Desert Island;
+since you're already going that direction, it would help them a lot
+if you would use it to get down there and return it to them.
 
-As you reach the bottom of the relentless avalanche of machine parts, you discover that they're already forming a formidable heap.
-Don't worry, though - a group of Elves is already here organizing the parts, and they have a system.
+As you reach the bottom of the relentless avalanche of machine parts,
+you discover that they're already forming a formidable heap.
+Don't worry, though - a group of Elves is already here organizing the parts,
+and they have a system.
 
 To start, each part is rated in each of four categories:
 
@@ -13,14 +17,18 @@ m: Musical (it makes a noise when you hit it)
 a: Aerodynamic
 s: Shiny
 
-Then, each part is sent through a series of workflows that will ultimately accept or reject the part.
-Each workflow has a name and contains a list of rules; each rule specifies a condition and where to send the part if the condition is true.
-The first rule that matches the part being considered is applied immediately, and the part moves on to the destination described by the rule.
+Then, each part is sent through a series of workflows that will ultimately accept
+or reject the part.
+Each workflow has a name and contains a list of rules; each rule specifies a
+condition and where to send the part if the condition is true.
+The first rule that matches the part being considered is applied immediately,
+and the part moves on to the destination described by the rule.
 (The last rule in each workflow has no condition and always applies if reached.)
 
 Consider the workflow ex{x>10:one,m<20:two,a>30:R,A}.
 This workflow is named ex and contains four rules.
-If workflow ex were considering a specific part, it would perform the following steps in order:
+If workflow ex were considering a specific part, it would perform the
+following steps in order:
 
 Rule "x>10:one": If the part's x is more than 10, send the part to the workflow named one.
 Rule "m<20:two": Otherwise, if the part's m is less than 20, send the part to the workflow named two.
@@ -71,6 +79,7 @@ package Day19
 import (
 	utils "AdventOfCode/Utils"
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -95,11 +104,7 @@ type Rule struct {
 	sendToAdress string
 }
 
-type Part struct {
-	X, M, A, S int
-}
-
-func loadData() (map[string]Workflow, []Part) {
+func loadData() (map[string]Workflow, []map[string]int) {
 	file, err := os.Open("./Day19/Ressources/day19_input.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -107,7 +112,7 @@ func loadData() (map[string]Workflow, []Part) {
 	scanner := bufio.NewScanner(file)
 
 	workflows := map[string]Workflow{}
-	parts := []Part{}
+	parts := []map[string]int{}
 
 	isWorkflow := true
 	for scanner.Scan() {
@@ -191,11 +196,11 @@ func loadData() (map[string]Workflow, []Part) {
 				log.Fatal(err3)
 			}
 
-			newPart := Part{
-				X: xInt,
-				M: mInt,
-				A: aInt,
-				S: sInt,
+			newPart := map[string]int{
+				"x": xInt,
+				"m": mInt,
+				"a": aInt,
+				"s": sInt,
 			}
 			parts = append(parts, newPart)
 
@@ -206,7 +211,54 @@ func loadData() (map[string]Workflow, []Part) {
 }
 
 func d19p1() int {
-	return 0
+	workflows, parts := loadData()
+	validParts := []map[string]int{}
+	for _, p := range parts {
+		result := processPart(workflows, "in", p)
+		if result {
+			validParts = append(validParts, p)
+		}
+	}
+	fmt.Println(validParts)
+	sum := 0
+	for _, vp := range validParts {
+		sum += vp["x"] + vp["m"] + vp["a"] + vp["s"]
+	}
+	return sum
+}
+
+func processPart(workflows map[string]Workflow, wID string, part map[string]int) bool {
+	workflow := workflows[wID]
+	for _, r := range workflow.rules {
+		if r.threshold == -1 {
+			if r.sendToAdress == "A" {
+				//accept
+				return true
+			} else if r.sendToAdress == "R" {
+				//reject
+				return false
+			} else {
+				//send to other workflow
+				return processPart(workflows, r.sendToAdress, part)
+			}
+		} else {
+			if (r.condition && part[r.rating] > r.threshold) ||
+				(!r.condition && part[r.rating] < r.threshold) {
+				if r.sendToAdress == "A" {
+					//accept
+					return true
+				} else if r.sendToAdress == "R" {
+					//reject
+					return false
+				} else {
+					//send to other workflow
+					return processPart(workflows, r.sendToAdress, part)
+				}
+			}
+		}
+	}
+
+	return true
 }
 
 func d19p2() int {
