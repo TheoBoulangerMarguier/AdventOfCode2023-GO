@@ -30,15 +30,23 @@ This workflow is named ex and contains four rules.
 If workflow ex were considering a specific part, it would perform the
 following steps in order:
 
-Rule "x>10:one": If the part's x is more than 10, send the part to the workflow named one.
-Rule "m<20:two": Otherwise, if the part's m is less than 20, send the part to the workflow named two.
-Rule "a>30:R": Otherwise, if the part's a is more than 30, the part is immediately rejected (R).
-Rule "A": Otherwise, because no other rules matched the part, the part is immediately accepted (A).
-If a part is sent to another workflow, it immediately switches to the start of that workflow instead and never returns.
-If a part is accepted (sent to A) or rejected (sent to R), the part immediately stops any further processing.
+Rule "x>10:one":
+	If the part's x is more than 10, send the part to the workflow named one.
+Rule "m<20:two":
+	Otherwise, if the part's m is less than 20, send the part to the workflow named two.
+Rule "a>30:R":
+	Otherwise, if the part's a is more than 30, the part is immediately rejected (R).
+Rule "A":
+	Otherwise, because no other rules matched the part, the part is immediately accepted (A).
+
+If a part is sent to another workflow, it immediately switches to the start of
+that workflow instead and never returns.
+If a part is accepted (sent to A) or rejected (sent to R),
+the part immediately stops any further processing.
 
 The system works, but it's not keeping up with the torrent of weird metal shapes.
-The Elves ask if you can help sort a few parts and give you the list of workflows and some part ratings (your puzzle input). For example:
+The Elves ask if you can help sort a few parts and give you the list of workflows
+and some part ratings (your puzzle input). For example:
 
 px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -58,8 +66,10 @@ hdj{m>838:A,pv}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}
 
-The workflows are listed first, followed by a blank line, then the ratings of the parts the Elves would like you to sort.
-All parts begin in the workflow named in. In this example, the five listed parts go through the following workflows:
+The workflows are listed first, followed by a blank line,
+then the ratings of the parts the Elves would like you to sort.
+All parts begin in the workflow named in. In this example,
+the five listed parts go through the following workflows:
 
 {x=787,m=2655,a=1222,s=2876}: in -> qqz -> qs -> lnx -> A
 {x=1679,m=44,a=2067,s=496}: in -> px -> rfg -> gd -> R
@@ -67,11 +77,33 @@ All parts begin in the workflow named in. In this example, the five listed parts
 {x=2461,m=1339,a=466,s=291}: in -> px -> qkq -> crn -> R
 {x=2127,m=1623,a=2188,s=1013}: in -> px -> rfg -> A
 
-Ultimately, three parts are accepted. Adding up the x, m, a, and s rating for each of the accepted parts gives 7540 for the part with x=787, 4623
-for the part with x=2036, and 6951 for the part with x=2127. Adding all of the ratings for all of the accepted parts gives the sum total of 19114.
+Ultimately, three parts are accepted. Adding up the x, m, a, and s rating for
+each of the accepted parts gives 7540 for the part with x=787, 4623
+for the part with x=2036, and 6951 for the part with x=2127. Adding all of the
+ratings for all of the accepted parts gives the sum total of 19114.
 
 Sort through all of the parts you've been given;
-what do you get if you add together all of the rating numbers for all of the parts that ultimately get accepted?
+what do you get if you add together all of the rating numbers for
+all of the parts that ultimately get accepted?
+
+--- Part Two ---
+Even with your help, the sorting process still isn't fast enough.
+
+One of the Elves comes up with a new plan: rather than sort parts individually
+through all of these workflows, maybe you can figure out in advance
+which combinations of ratings will be accepted or rejected.
+
+Each of the four ratings (x, m, a, s) can have an integer value ranging from
+a minimum of 1 to a maximum of 4000. Of all possible distinct combinations of ratings,
+your job is to figure out which ones will be accepted.
+
+In the above example, there are 167409079868000
+distinct combinations of ratings that will be accepted.
+
+Consider only your list of workflows; the list of part ratings that the Elves
+wanted you to sort is no longer relevant. How many distinct
+combinations of ratings will be accepted by the Elves' workflows?
+
 */
 
 package Day19
@@ -79,7 +111,6 @@ package Day19
 import (
 	utils "AdventOfCode/Utils"
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -91,17 +122,6 @@ func Day19() [2]int {
 		d19p1(),
 		d19p2(),
 	}
-}
-
-type Workflow struct {
-	rules []Rule
-}
-
-type Rule struct {
-	rating       string
-	condition    bool // "<" false, ">" true
-	threshold    int
-	sendToAdress string
 }
 
 func loadData() (map[string]Workflow, []map[string]int) {
@@ -132,13 +152,13 @@ func loadData() (map[string]Workflow, []map[string]int) {
 
 				ok, _ := utils.SliceContains(chars, ':')
 				rating, sendToAdress := "", ""
-				condition := false
+				comparator := Inferior
 				threshold := -1
 
 				if ok { //has a re-assignment condition
 					rating = string(chars[0]) //set letter
 					if chars[1] == '>' {
-						condition = true //set condition
+						comparator = Superior //set condition
 					}
 					index, _ := utils.SliceLastIndexOf(chars, ':')
 					tString := string(chars[2:index])
@@ -155,7 +175,7 @@ func loadData() (map[string]Workflow, []map[string]int) {
 
 				newRule := Rule{
 					rating:       rating,
-					condition:    condition,
+					comparator:   comparator,
 					threshold:    threshold,
 					sendToAdress: sendToAdress,
 				}
@@ -219,13 +239,28 @@ func d19p1() int {
 			validParts = append(validParts, p)
 		}
 	}
-	fmt.Println(validParts)
 	sum := 0
 	for _, vp := range validParts {
 		sum += vp["x"] + vp["m"] + vp["a"] + vp["s"]
 	}
 	return sum
 }
+
+type Workflow struct {
+	rules []Rule
+}
+
+type Rule struct {
+	rating       string
+	comparator   int
+	threshold    int
+	sendToAdress string
+}
+
+const (
+	Superior = 1
+	Inferior = 0
+)
 
 func processPart(workflows map[string]Workflow, wID string, part map[string]int) bool {
 	workflow := workflows[wID]
@@ -242,8 +277,8 @@ func processPart(workflows map[string]Workflow, wID string, part map[string]int)
 				return processPart(workflows, r.sendToAdress, part)
 			}
 		} else {
-			if (r.condition && part[r.rating] > r.threshold) ||
-				(!r.condition && part[r.rating] < r.threshold) {
+			if (r.comparator == Superior && part[r.rating] > r.threshold) ||
+				(r.comparator == Inferior && part[r.rating] < r.threshold) {
 				if r.sendToAdress == "A" {
 					//accept
 					return true
@@ -262,5 +297,6 @@ func processPart(workflows map[string]Workflow, wID string, part map[string]int)
 }
 
 func d19p2() int {
+
 	return 0
 }

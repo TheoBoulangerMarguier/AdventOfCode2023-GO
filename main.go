@@ -1,7 +1,6 @@
 package main
 
 import (
-	"AdventOfCode/Day18"
 	"AdventOfCode/Day19"
 	"fmt"
 )
@@ -26,7 +25,7 @@ func main() {
 		{-1, -1}, //Day15.Day15(),
 		{-1, -1}, //Day16.Day16(), //slow
 		{-1, -1}, //Day17.Day17(), //slow
-		Day18.Day18(),
+		{-1, -1}, //Day18.Day18(),
 		Day19.Day19(),
 	}
 
@@ -52,7 +51,7 @@ func testResults(result [][2]int) {
 		{502139, 284132},
 		{7927, 8246},
 		{785, 922},
-		{74074, -1},
+		{74074, 112074045986829},
 		{-1, -1},
 	}
 
