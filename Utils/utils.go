@@ -25,13 +25,33 @@ func ReverseArray(input []int) {
 }
 
 // get the Least Common Multiple of A and B
-func LCM(a, b int) int {
-	for b != 0 {
-		remainder := a % b
-		a = b
-		b = remainder
+func LCM(numbers ...int) int {
+	if len(numbers) == 0 {
+		return 0
 	}
-	return a
+
+	abs := func(a int) int {
+		if a < 0 {
+			return -a
+		}
+		return a
+	}
+
+	gcd := func(a, b int) int {
+		for b != 0 {
+			remainder := a % b
+			a = b
+			b = remainder
+		}
+		return a
+	}
+
+	lcm := numbers[0]
+	for i := 1; i < len(numbers); i++ {
+		g := gcd(lcm, numbers[i])
+		lcm *= numbers[i] / abs(g)
+	}
+	return lcm
 }
 
 // detect overlap between a range AA' and a range BB' using their start/end as coordinates
