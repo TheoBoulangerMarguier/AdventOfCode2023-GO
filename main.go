@@ -60,7 +60,7 @@ func testResults(result [][2]int) {
 		{788848550, -1},
 		{3600, 599763113936220},
 		{441, 80778},
-		{-1, -1},
+		{2430, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {
