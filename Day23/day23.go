@@ -120,6 +120,7 @@ import (
 	utils "AdventOfCode/Utils"
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 )
 
@@ -138,6 +139,7 @@ type Cell struct {
 type Grid struct {
 	smallGrid, fullGrid map[Point2]Cell
 	start, end, bounds  Point2
+	links               map[Point2][]Point2
 }
 
 func Day23() [2]int {
@@ -147,20 +149,14 @@ func Day23() [2]int {
 	}
 }
 
-const (
-	part1 int = 1
-	part2 int = 2
-)
-
 func d23p1() int {
-	return FindLongestPathlenghtP1(DfsP1(loadData("./Day23/Ressources/day23_input-mini2.txt")))
+	return FindLongestPathlenghtP1(DfsP1(loadData("./Day23/Ressources/day23_input.txt")))
 }
 
 func d23p2() int {
-	gridData := loadData("./Day23/Ressources/day23_input-mini2.txt")
-	paths := BrutForceDfsP2(gridData)
-	size, bestPath := FindLongestPathlenghtP2(paths)
-	printgridPath(gridData, bestPath)
+	gridData := loadData("./Day23/Ressources/day23_input.txt")
+	gridData.links = preComputeLinks(gridData)
+	size := brutForceP2(gridData)
 	return size
 }
 
@@ -280,7 +276,6 @@ func DfsP1(gridData Grid) Grid {
 		gridData.smallGrid[currentPos] = currentCell
 		gridData.fullGrid[currentPos] = currentCell
 	}
-	printgrid(gridData)
 	return gridData
 }
 
@@ -320,86 +315,105 @@ func FindLongestPathlenghtP1(gridData Grid) int {
 	return len(path) - 1
 }
 
-func BrutForceDfsP2(gridData Grid) [][]Point2 {
-	paths := [][]Point2{}
-	finalPaths := [][]Point2{}
+func preComputeLinks(gridData Grid) map[Point2][]Point2 {
+	splitCount := 0
+	links := map[Point2][]Point2{}
 
-	paths = append(paths, []Point2{gridData.start})
+	for pos, _ := range gridData.smallGrid {
+		for _, dir := range []Point2{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+			nextPos := Point2{pos.x + dir.x, pos.y + dir.y}
+			if _, exist := gridData.smallGrid[nextPos]; exist {
+				links[pos] = append(links[pos], dir)
+			}
+		}
+		if len(links[pos]) > 2 {
+			splitCount++
+		}
+	}
+	return links
+}
+
+type Path struct {
+	done    bool
+	head    Point2
+	history map[Point2]struct{}
+}
+
+func brutForceP2(gridData Grid) int {
+	paths := []Path{}
+	maxFound := 0
+
+	paths = append(paths, Path{
+		done:    false,
+		head:    gridData.start,
+		history: map[Point2]struct{}{gridData.start: {}},
+	})
+	explored := 0
 
 	for i := 0; i < len(paths); i++ {
-		fmt.Println()
-		fmt.Println("path i:", len(paths[i]))
-		for j := len(paths[i]) - 1; j < len(paths[i]); j++ {
-			currentPos := paths[i][j]
-			fmt.Println("checking ", currentPos)
+		maxFound = int(math.Max(float64(explorePath(gridData, paths[i], &paths)), float64(maxFound)))
 
-			if currentPos.x == gridData.end.x && currentPos.y == gridData.end.y {
-				fmt.Println("found end point")
-				finalPaths = append(finalPaths, paths[i])
-				break
-			}
+		//clean completed paths
+		paths[i] = paths[len(paths)-1]
+		paths = paths[:len(paths)-1]
+		i--
 
-			allNextPos := []Point2{}
-			for _, dir := range []Point2{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
-				nextPos := Point2{currentPos.x + dir.x, currentPos.y + dir.y}
-				fmt.Print("checking pos:", nextPos, " in dir:", dir, "result:")
-				//ignore out of bounds positions
-				if _, exist := gridData.smallGrid[nextPos]; !exist {
-					fmt.Print("FAIL doesn't exist \n")
-					continue
-				}
+		//print current status
+		explored++
+		if explored%10000 == 0 {
+			fmt.Println("explored:", explored, "currentMax:", maxFound)
+		}
+	}
 
-				//prevent from going twice on the same cell
-				if inpath, err := utils.SliceContains(paths[i], nextPos); err != nil {
-					panic(err)
-				} else if inpath {
-					fmt.Print("FAIL already in path explored, not allowed\n")
-					continue
-				}
-				fmt.Print("PASS")
-				allNextPos = append(allNextPos, nextPos)
-			}
+	return maxFound - 1
+}
 
-			count := len(allNextPos)
-			fmt.Println("we found", count, "possible poses")
-			if count == 0 {
-				fmt.Println("end of the path")
+func explorePath(gridData Grid, path Path, paths *[]Path) int {
+	for !path.done {
+		//found the end of the maze for this path
+		if path.head.x == gridData.end.x && path.head.y == gridData.end.y {
+			path.history[path.head] = struct{}{}
+			path.done = true
+			return len(path.history)
+		}
+
+		firstPos := Point2{-1, -1}
+		for _, dir := range gridData.links[path.head] {
+			nextPos := Point2{path.head.x + dir.x, path.head.y + dir.y}
+
+			//prevent from going twice on the same cell
+			if _, inpath := path.history[nextPos]; inpath {
 				continue
-			} else if count == 1 {
-				fmt.Println("adding", allNextPos[0], " to the current path:", i)
-				paths[i] = append(paths[i], allNextPos[0])
+			}
+
+			if firstPos.x == -1 {
+				firstPos = nextPos
 			} else {
-				for k := 1; k < count; k++ {
-					fmt.Println("creating new branch with added pos", allNextPos[k])
-					paths = append(paths, append(paths[i], allNextPos[k]))
+				newPath := Path{
+					done:    false,
+					head:    nextPos,
+					history: map[Point2]struct{}{nextPos: {}},
 				}
-				fmt.Println("and adding", allNextPos[0], " to the current path:", i)
-				paths[i] = append(paths[i], allNextPos[0])
+
+				for key := range path.history {
+					newPath.history[key] = struct{}{}
+				}
+				// CREATE A NEW PATH TO EXPLORE
+				*paths = append(*paths, newPath)
 			}
 		}
-	}
-	fmt.Println("END found", len(finalPaths), "final paths")
-	return finalPaths
-}
 
-func FindLongestPathlenghtP2(paths [][]Point2) (int, []Point2) {
-	max := 0
-	bestPathID := -1
-
-	if len(paths) == 0 {
-		return max, []Point2{}
-	}
-
-	for i := 0; i < len(paths); i++ {
-		if max < len(paths[i]) {
-			max = len(paths[i])
-			bestPathID = i
+		if firstPos.x != -1 {
+			path.head = firstPos
+			path.history[firstPos] = struct{}{}
+		} else {
+			path.done = true
 		}
 	}
-	fmt.Println(paths[bestPathID])
-	return max, paths[bestPathID]
+	return -1
 }
 
+/*
 func printgrid(grid Grid) {
 	fmt.Println()
 	for y := 0; y < grid.bounds.y; y++ {
@@ -426,19 +440,15 @@ func printgrid(grid Grid) {
 	fmt.Println()
 }
 
-func printgridPath(grid Grid, path []Point2) {
+func printgridPath(grid Grid, path Path) {
 	fmt.Println()
 	for y := 0; y < grid.bounds.y; y++ {
 		for x := 0; x < grid.bounds.x; x++ {
-			//SHOW DIR
 			if grid.fullGrid[Point2{x, y}].value == "#" {
 				fmt.Print(grid.fullGrid[Point2{x, y}].value)
 			} else {
-				inpath, err := utils.SliceContains(path, Point2{x, y})
-				if err != nil {
-					panic(err)
-				}
-				if inpath {
+
+				if _, inpath := path.history[Point2{x, y}]; inpath {
 					fmt.Print("\033[32m", grid.fullGrid[Point2{x, y}].value, "\033[0m")
 				} else {
 					fmt.Print(grid.fullGrid[Point2{x, y}].value)
@@ -448,4 +458,4 @@ func printgridPath(grid Grid, path []Point2) {
 		fmt.Println()
 	}
 	fmt.Println()
-}
+}*/
