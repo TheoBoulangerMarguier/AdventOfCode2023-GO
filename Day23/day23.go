@@ -156,6 +156,8 @@ func d23p1() int {
 func d23p2() int {
 	gridData := loadData("./Day23/Ressources/day23_input.txt")
 	gridData.links = preComputeLinks(gridData)
+
+	//40 millions paths or so (so could be improved)
 	size := brutForceP2(gridData)
 	return size
 }
