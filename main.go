@@ -1,7 +1,7 @@
 package main
 
 import (
-	"AdventOfCode/Day24"
+	"AdventOfCode/Day25"
 	"fmt"
 )
 
@@ -31,7 +31,8 @@ func main() {
 		{-1, -1}, //Day21.Day21(),
 		{-1, -1}, //Day22.Day22(), //slightly slow but very fine
 		{-1, -1}, //Day23.Day23(), //p2 is brutforce can be optimised by mapping itersect & computing length between them in a smaller graph
-		Day24.Day24(),
+		{-1, -1}, //Day24.Day24(), //p1 done , p2 found answer on reddit, it's math not prog
+		Day25.Day25(),
 	}
 
 	testResults(results)
@@ -62,7 +63,8 @@ func testResults(result [][2]int) {
 		{3600, 599763113936220},
 		{441, 80778},
 		{2430, 6534},
-		{14672, -1},
+		{14672, 646810057104753},
+		{-1, -1},
 	}
 
 	for i := 0; i < len(expectedResults); i++ {

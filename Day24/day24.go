@@ -172,37 +172,74 @@ func d24p1() int {
 	return sum
 }
 
+// solution by reddit user "mynt" https://www.reddit.com/r/adventofcode/comments/18pnycy/comment/kicuapd/?utm_source=share&utm_medium=web2x&context=3
 func d24p2() int {
-	return 0
-}
+	//287704452860064, 121558528808556, 254224870158150 @ 23, 176, 68
+	//275586065064718, 113832932538934, 250412578315621 @ 231, 176, 108
+	//221521858324342, 147871529369018, 271954329484075 @ 233, 176, 20
 
-type Point3 struct {
-	x, y, z float64
-}
+	vx0 := float64(23)
+	//vy0 := float64(176)
+	vz0 := float64(68)
 
-type Vector3 struct {
-	pos, dir Point3
-}
+	vx1 := float64(231)
+	vy1 := float64(176)
+	vz1 := float64(108)
 
-func dot(a, b Point3, dim int) float64 {
+	vx2 := float64(233)
+	vy2 := float64(176)
+	vz2 := float64(20)
 
-	if dim == 2 {
-		return a.x*b.x + a.y*b.y
-	}
+	x0 := float64(287704452860064)
+	y0 := float64(121558528808556)
+	z0 := float64(254224870158150)
 
-	if dim == 3 {
-		return a.x*b.x + a.y*b.y + a.z*b.z
-	}
+	x1 := float64(275586065064718)
+	y1 := float64(113832932538934)
+	z1 := float64(250412578315621)
 
-	return math.Inf(1)
-}
+	x2 := float64(221521858324342)
+	y2 := float64(147871529369018)
+	z2 := float64(271954329484075)
 
-func cross(a, b Point3) Point3 {
-	return Point3{
-		a.y*b.z - b.y*a.z,
-		a.z*b.x - b.z*a.x,
-		a.x*b.y - b.x*a.y,
-	}
+	vxr1 := vx1 - vx0
+	vzr1 := vz1 - vz0
+	vxr2 := vx2 - vx0
+	vzr2 := vz2 - vz0
+
+	xr1 := x1 - x0
+	yr1 := y1 - y0
+	zr1 := z1 - z0
+
+	xr2 := x2 - x0
+	yr2 := y2 - y0
+	zr2 := z2 - z0
+
+	num := (yr2 * xr1 * vzr1) - (vxr1 * yr2 * zr1) + (yr1 * zr2 * vxr1) - (yr1 * xr2 * vzr1)
+	den := yr1 * ((vzr1 * vxr2) - (vxr1 * vzr2))
+	t2 := num / den
+
+	num = (yr1 * xr2) + (yr1 * vxr2 * t2) - (yr2 * xr1)
+	den = yr2 * vxr1
+	t1 := num / den
+
+	cx1 := x1 + (t1 * vx1)
+	cy1 := y1 + (t1 * vy1)
+	cz1 := z1 + (t1 * vz1)
+
+	cx2 := x2 + (t2 * vx2)
+	cy2 := y2 + (t2 * vy2)
+	cz2 := z2 + (t2 * vz2)
+
+	xm := (cx2 - cx1) / (t2 - t1)
+	ym := (cy2 - cy1) / (t2 - t1)
+	zm := (cz2 - cz1) / (t2 - t1)
+
+	xc := cx1 - (xm * t1)
+	yc := cy1 - (ym * t1)
+	zc := cz1 - (zm * t1)
+
+	return int(xc + yc + zc)
 }
 
 //_____________________________________________________________________________
@@ -315,8 +352,8 @@ func checkPositionInTestArea(lowBound, upperBound float64, vA, vB Vector3) bool 
 	vBI := Point3{intersectX - vB.pos.x, intersectY - vB.pos.y, 0}
 
 	//get dot product bewteen the 2 direction, positive mean toward future
-	dotA := dot(vAA, vAI, 2)
-	dotB := dot(vBB, vBI, 2)
+	dotA := dotProduct(vAA, vAI, 2)
+	dotB := dotProduct(vBB, vBI, 2)
 
 	inThePastA := dotA < 0
 	inThePastB := dotB < 0
@@ -332,5 +369,49 @@ func checkPositionInTestArea(lowBound, upperBound float64, vA, vB Vector3) bool 
 }
 
 //_____________________________________________________________________________
-//______________________________________PART 2_________________________________
+//______________________________________VECTORS________________________________
 //_____________________________________________________________________________
+
+type Point3 struct {
+	x, y, z float64
+}
+
+type Vector3 struct {
+	pos, dir Point3
+}
+
+func dotProduct(a, b Point3, dim int) float64 {
+	if dim == 2 {
+		return a.x*b.x + a.y*b.y
+	}
+
+	if dim == 3 {
+		return a.x*b.x + a.y*b.y + a.z*b.z
+	}
+
+	return math.Inf(1)
+}
+
+func crossproduct(a, b Point3) Point3 {
+	return Point3{
+		a.y*b.z - b.y*a.z,
+		a.z*b.x - b.z*a.x,
+		a.x*b.y - b.x*a.y,
+	}
+}
+
+func subtractVectors(v1, v2 Point3) Point3 {
+	return Point3{
+		x: v1.x - v2.x,
+		y: v1.y - v2.y,
+		z: v1.z - v2.z,
+	}
+}
+
+func magnitude(v Point3) float64 {
+	return math.Sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
+}
+
+func magnitudeSquared(v Point3) float64 {
+	return v.x*v.x + v.y*v.y + v.z*v.z
+}
